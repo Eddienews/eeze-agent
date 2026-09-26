@@ -1,8 +1,13 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { DEMO_MODE } from "@/lib/api";
 import { ContactModal } from "@/components/contact-modal";
 
 export const Route = createFileRoute("/")({
+  // The installed app opens straight on Missions; this landing only shows in the public demo.
+  beforeLoad: () => {
+    if (!DEMO_MODE) throw redirect({ to: "/missions" });
+  },
   head: () => ({
     meta: [
       { title: "Eeze — A small team of AI agents that works on your computer" },

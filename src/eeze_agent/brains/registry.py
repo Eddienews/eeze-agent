@@ -93,8 +93,16 @@ def make_brain(
 
         tier, source = tier_for_task(task, escalate_from=escalate_from)
         return CodexBrain(tier=tier, route_source=source, **kwargs)
-    from eeze_agent.brains.jev import JevBrain
+    from eeze_agent.brains.jev import JevBrain, _ensure_env
 
+    if name is None:
+        _ensure_env()
+        if not os.environ.get("TYPESAFE_API_KEY"):
+            # Jev is optional: without a TypeSafe key, use the AI provider chosen in the app.
+            # (Script-only missions — files, video, photo, 3D — never ask the brain anything.)
+            return _routed_llm(
+                task=task, agent_id=agent_id, repo_root=repo_root, escalate_from=escalate_from, kwargs=kwargs
+            )
     return JevBrain(**kwargs)
 
 

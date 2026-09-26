@@ -3,7 +3,8 @@ Eeze Agent - Windows installer / bootstrap (idempotent).
 
 What it does:
   1. ensures the Python toolchain (installs uv if missing, via the official installer)
-  2. installs project dependencies (uv sync)
+  2. installs project dependencies (uv sync), builds the screens (installs Node.js LTS via
+     winget on a fresh machine) and installs ffmpeg via winget if missing (-NoTools skips)
   3. starts the background service (safe when already running)
   4. creates Desktop + Start Menu shortcuts
   5. registers autostart so routines fire without opening a terminal, plus a
@@ -13,13 +14,14 @@ What it does:
 Run it by double-clicking install.cmd in the repo root.
 Running it again is also how you UPDATE: it re-syncs dependencies, rebuilds the screens
 and restarts the service with the new code.
-Flags: -NoBrowser -NoShortcuts -NoAutostart -NoUiBuild
+Flags: -NoBrowser -NoShortcuts -NoAutostart -NoUiBuild -NoTools
 #>
 param(
   [switch]$NoBrowser,
   [switch]$NoShortcuts,
   [switch]$NoAutostart,
-  [switch]$NoUiBuild
+  [switch]$NoUiBuild,
+  [switch]$NoTools
 )
 $ErrorActionPreference = "Stop"
 $Repo = Split-Path -Parent $PSScriptRoot
@@ -59,16 +61,66 @@ if ($LASTEXITCODE -ne 0) {
 }
 Ok "dependencies ready"
 
+function Update-PathFromSystem {
+  # winget installs update the machine/user PATH, not this window's copy.
+  $machine = [Environment]::GetEnvironmentVariable("Path", "Machine")
+  $user = [Environment]::GetEnvironmentVariable("Path", "User")
+  $env:Path = "$machine;$user;$env:Path"
+}
+
+function Install-WithWinget([string]$id, [string]$what) {
+  if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Warn "winget is not available - install $what yourself, then run install.cmd again"
+    return $false
+  }
+  Say "installing $what (winget $id)..."
+  $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+  $null = & winget install --id $id -e --silent --accept-source-agreements --accept-package-agreements 2>&1
+  $ErrorActionPreference = $prev
+  Update-PathFromSystem
+  return $true
+}
+
+$uiEntry = Join-Path $Repo "ui\dist\client\index.html"
 if (-not $NoUiBuild) {
   Step "Building the app screens (ui/)"
-  if ((Get-Command npm -ErrorAction SilentlyContinue) -and (Test-Path (Join-Path $Repo "ui\node_modules"))) {
+  # A fresh download has no built screens: Node.js is needed once to build them.
+  if (-not (Get-Command npm -ErrorAction SilentlyContinue)) {
+    $null = Install-WithWinget "OpenJS.NodeJS.LTS" "Node.js (needed once to build the screens)"
+  }
+  if (Get-Command npm -ErrorAction SilentlyContinue) {
     # npm/uv write progress to stderr; under "Stop" Windows PowerShell would abort on it.
     $prev = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+    if (-not (Test-Path (Join-Path $Repo "ui\node_modules"))) {
+      Say "downloading the screen components (first run only, a few minutes)..."
+      Push-Location (Join-Path $Repo "ui")
+      $null = & npm ci --no-audit --no-fund 2>&1
+      Pop-Location
+    }
     $ui = & uv run eeze ui build 2>&1 | Out-String
     $ErrorActionPreference = $prev
-    if ($LASTEXITCODE -eq 0) { Ok "screens rebuilt" } else { Warn "screen build failed - the previous build stays in use"; Say ($ui.Trim() -split "`n" | Select-Object -Last 5 | Out-String) }
+    if ($LASTEXITCODE -eq 0 -and (Test-Path $uiEntry)) { Ok "screens built" }
+    elseif (Test-Path $uiEntry) { Warn "screen build failed - the previous build stays in use"; Say ($ui.Trim() -split "`n" | Select-Object -Last 5 | Out-String) }
+    else { Warn "screen build failed"; Say ($ui.Trim() -split "`n" | Select-Object -Last 8 | Out-String) }
+  }
+}
+if (-not (Test-Path $uiEntry)) {
+  throw "The app screens are not built. Install Node.js LTS from https://nodejs.org, then run install.cmd again."
+}
+
+if (-not $NoTools) {
+  Step "Checking media tools"
+  # Video and photo missions use ffmpeg. Found on PATH, via EEZE_FFMPEG or in ~\tools\ffmpeg.
+  $ffTools = Join-Path $env:USERPROFILE "tools\ffmpeg"
+  if ((Get-Command ffmpeg -ErrorAction SilentlyContinue) -or $env:EEZE_FFMPEG -or (Test-Path $ffTools)) {
+    Ok "ffmpeg found"
+  } elseif ((Install-WithWinget "Gyan.FFmpeg" "ffmpeg (video and photo missions)") -and (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
+    Ok "ffmpeg installed"
   } else {
-    Warn "npm or ui\node_modules not found - skipping (the existing screens stay in use)"
+    Warn "ffmpeg not found - video/photo missions need it (https://ffmpeg.org); everything else works"
+  }
+  if (-not (Get-Command blender -ErrorAction SilentlyContinue) -and -not (Test-Path "$env:ProgramFiles\Blender Foundation")) {
+    Say "Blender not found - only needed for 3D missions (https://www.blender.org)"
   }
 }
 

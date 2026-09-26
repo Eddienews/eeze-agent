@@ -112,7 +112,7 @@ const en = {
   "m.regenerate": "Regenerate draft",
   "m.writing": "Writing the plan…",
   "m.generateHint":
-    "Runs on your local subscription — roughly 15 s, $0 spent. A refusal comes back with the reasons.",
+    "Uses the AI provider you chose in Setup — usually 10–30 s. A refusal comes back with the reasons.",
   "m.goalFirst": "Write the goal first, then generate.",
   "m.regenWarn": "Regenerating replaces your current plan text.",
   "m.regenAnyway": "Regenerate anyway",
@@ -342,7 +342,7 @@ const pt: Partial<Record<MessageKey, string>> = {
   "m.regenerate": "Gerar de novo",
   "m.writing": "Escrevendo o plano…",
   "m.generateHint":
-    "Roda na sua assinatura local — cerca de 15 s, US$ 0. Se recusar, os motivos aparecem aqui.",
+    "Usa o provedor de IA escolhido na Configuração — em geral 10–30 s. Se recusar, os motivos aparecem aqui.",
   "m.goalFirst": "Escreva o objetivo primeiro, depois gere.",
   "m.regenWarn": "Gerar de novo substitui o texto atual do plano.",
   "m.regenAnyway": "Gerar mesmo assim",

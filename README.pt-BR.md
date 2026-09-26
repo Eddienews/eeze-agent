@@ -8,6 +8,10 @@ segundo plano, com os programas que você já tem.
 
 🇺🇸 [Read in English](README.md)
 
+![Missões: comece por uma receita ou descreva o trabalho com as suas palavras](docs/screenshots/missions-pt.png)
+
+![Aprovações: veja cada mudança nos arquivos antes de acontecer, e só então aprove](docs/screenshots/approval-pt.png)
+
 - **Local.** O serviço e o painel ficam em `127.0.0.1`. Seus arquivos não saem do computador,
   a não ser que um trabalho aprovado por você envie algo ao provedor de IA que você configurou.
 - **Você aprova o que é arriscado.** Tudo que altera ou apaga arquivos, gasta dinheiro ou envia
@@ -34,19 +38,22 @@ segundo plano, com os programas que você já tem.
    definitivo, por exemplo `C:\Users\<você>\eeze-agent`. Ou use `git clone`.
 2. Dê dois cliques no **`install.cmd`**.
 
-O instalador prepara o Python (via [uv](https://docs.astral.sh/uv/)), monta o painel, liga o
-serviço em segundo plano, cria atalhos e **abre o Eeze no navegador já conectado**. Depois ele
-guia a configuração (escolher um provedor de IA e colar a chave).
+O instalador prepara o Python (via [uv](https://docs.astral.sh/uv/)), monta o painel
+(instalando o Node.js LTS com `winget` num PC novo), instala o [ffmpeg](https://ffmpeg.org/) se
+faltar, liga o serviço em segundo plano, cria atalhos e **abre o Eeze no navegador já
+conectado**. A primeira vez leva alguns minutos.
 
-Ferramentas opcionais usadas pelas missões: [ffmpeg](https://ffmpeg.org/) (vídeo/foto) e
-[Blender](https://www.blender.org/) (3D). Instale se for usar essas missões.
+**Você precisa de um provedor de IA** para transformar suas palavras num plano: na
+configuração, cole uma chave da OpenRouter, OpenAI, Google, xAI ou Groq, ou aponte para um
+[Ollama](https://ollama.com) local. Planejar uma missão custa centavos; rodar missões de
+arquivos/vídeo/foto não usa IA nenhuma. Opcional: [Blender](https://www.blender.org/) para 3D.
 
 ### Uso no dia a dia
 
 | Você quer… | Faça isto |
 | --- | --- |
 | Abrir o Eeze | Dois cliques em **Eeze Agent** na Área de Trabalho ou no menu Iniciar |
-| Instalar uma atualização | Menu Iniciar → **Eeze Agent - Update** (ou dois cliques no `install.cmd`) |
+| Instalar uma atualização | `git pull` (ou baixe o ZIP novo e descompacte por cima na mesma pasta), depois Menu Iniciar → **Eeze Agent - Update** |
 | Desconectar todos os navegadores | `eeze unpair` (veja abaixo) |
 
 O serviço inicia com o Windows para as rotinas rodarem, e um vigia o reinicia se ele parar.

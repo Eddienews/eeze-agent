@@ -7,6 +7,10 @@ your approval, and then does it in the background with the apps you already have
 
 🇧🇷 [Leia em português](README.pt-BR.md)
 
+![Missions: start from a recipe or describe the job in your own words](docs/screenshots/missions.png)
+
+![Approvals: see every file change before it happens, then approve — or don't](docs/screenshots/approval.png)
+
 - **Local first.** The service and dashboard live on `127.0.0.1`. Your files never leave your
   computer unless a job you approve sends something to an AI provider you configured.
 - **You approve the risky parts.** Anything that changes or removes files, spends money or
@@ -33,19 +37,22 @@ It is an early open-source project: expect rough edges. See [docs/CAPABILITIES.m
    permanent, e.g. `C:\Users\<you>\eeze-agent`. Or `git clone` it.
 2. Double-click **`install.cmd`**.
 
-The installer sets up Python (via [uv](https://docs.astral.sh/uv/)), builds the dashboard,
-starts the background service, creates shortcuts and **opens Eeze in your browser already
-signed in**. It then walks you through setup (choosing an AI provider and pasting its key).
+The installer sets up Python (via [uv](https://docs.astral.sh/uv/)), builds the dashboard
+(installing Node.js LTS with `winget` on a fresh PC), installs [ffmpeg](https://ffmpeg.org/)
+if it is missing, starts the background service, creates shortcuts and **opens Eeze in your
+browser already signed in**. The first run takes a few minutes.
 
-Optional tools the missions use: [ffmpeg](https://ffmpeg.org/) (video/photo) and
-[Blender](https://www.blender.org/) (3D). Install them if you plan to use those missions.
+**You need an AI provider** to turn your words into a plan: the setup page lets you paste a key
+for OpenRouter, OpenAI, Google, xAI or Groq, or point Eeze at a local [Ollama](https://ollama.com).
+Planning a mission costs cents; running files/video/photo missions uses no AI at all.
+Optional: [Blender](https://www.blender.org/) for 3D missions.
 
 ### Everyday use
 
 | You want to… | Do this |
 | --- | --- |
 | Open Eeze | Double-click **Eeze Agent** on the Desktop or Start menu |
-| Install an update | Start menu → **Eeze Agent - Update** (or double-click `install.cmd` again) |
+| Install an update | `git pull` (or download the new ZIP and unzip it over the same folder), then Start menu → **Eeze Agent - Update** |
 | Sign every browser out | `eeze unpair` (see below) |
 
 The service starts with Windows so scheduled routines run, and a watchdog restarts it if it stops.
