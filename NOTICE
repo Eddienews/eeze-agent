@@ -1,0 +1,10 @@
+Eeze Agent
+Copyright 2026 The Eeze Agent authors
+
+This product includes software developed by the Eeze Agent authors,
+licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party components keep their own licenses, notably:
+- cua-driver (https://github.com/trycua/cua) — MIT
+- The dashboard's npm dependencies — see ui/package.json and ui/package-lock.json
+- The service's Python dependencies — see pyproject.toml and uv.lock

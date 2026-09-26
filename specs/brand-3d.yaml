@@ -1,0 +1,66 @@
+# C2 demo — a branded 3D scene rendered headless with Blender 5.2.
+#
+# Run: uv run eeze 3d specs/brand-3d.yaml --out artifacts/3d/c2-demo
+# One Blender invocation builds the scene and runs all four steps; every artifact is
+# verified for real (file facts, magic bytes, ffprobe for the MP4/PNG).
+name: brand-3d
+description: >-
+  The eeze wordmark (extruded text) standing over a dark floor, a cyan ring above it and a
+  camera orbiting one full turn; artifacts: still frame + 2 s turntable animation +
+  .blend scene + .glb model. NOTE: the wordmark is extruded text, so its reverse side reads
+  mirrored while the camera is on the far half of the orbit — expected, not a render bug.
+scene:
+  objects:
+    - kind: plane
+      name: floor
+      location: [0, 0, -1.2]
+      params: {size: 16}
+      color: [0.03, 0.03, 0.045]
+      roughness: 0.35
+    - kind: torus
+      name: ring
+      location: [0, 0.6, 2.0]
+      rotation: [90, 0, 0]
+      params: {radius: 1.0, minor_radius: 0.16, segments: 96, minor_segments: 32}
+      color: [0.06, 0.75, 0.92]
+      metallic: 0.2
+      roughness: 0.25
+    - kind: text
+      name: wordmark
+      text: "eeze"
+      location: [0, 0, 0.15]
+      rotation: [90, 0, 0]
+      params: {size: 2.0, extrude: 0.12}
+      color: [0.92, 0.95, 1.0]
+      roughness: 0.3
+  camera:
+    location: [-3.4, -5.6, 3.1]
+    look_at: [0, 0, 1.0]
+    lens: 48
+    orbit: {revolutions: 1.0}
+  lights:
+    - kind: sun
+      location: [4, -5, 7]
+      energy: 3.5
+    - kind: area
+      location: [-4, -2, 4.5]
+      energy: 260
+      size: 6
+      color: [0.55, 0.85, 1.0]
+render:
+  engine: BLENDER_EEVEE
+  resolution: [480, 480]
+  fps: 12
+  frames: 24
+  background: [0.012, 0.012, 0.016]
+steps:
+  - id: still
+    op: render_still
+    frame: 8
+  - id: turntable
+    op: render_animation
+  - id: scene
+    op: save_blend
+  - id: model
+    op: export_glb
+output: turntable

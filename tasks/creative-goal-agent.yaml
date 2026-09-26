@@ -1,0 +1,27 @@
+# C3 demo — the AGENT turns a plain-language goal into a spec and RENDERS it.
+#
+# Script-only task (`app: ""`): the loop runs `eeze spec ... --run` via `run_script`, so the
+# whole creative chain (model writes the spec -> validator -> feasibility gate -> vertical ->
+# verified artifacts) is gated as `install_exec` (F2): the first run pauses; approve with a
+# `scope=task` grant (+ auto_resume) and the chain continues.
+#
+# Run: uv run eeze run tasks/creative-goal-agent.yaml
+# Artifacts land in the run's own dir:
+#   artifacts/runs/<runset>/run-01/spec.yaml          (the spec the model wrote)
+#   artifacts/runs/<runset>/run-01/write-report.json  (attempts, model, tokens, cost)
+#   artifacts/runs/<runset>/run-01/run/               (verified artifacts: MP4/PNG/GLB + report)
+#   artifacts/runs/<runset>/run-01/step-creative.log  (the CLI's full output)
+name: creative-goal-agent
+app: ""
+vars:
+  # machine-specific paths — adjust per host (uv venv entry point)
+  eeze: "C:/path/to/eeze-agent/.venv/Scripts/eeze.exe"
+  goal: "A 2-second turntable of a warm amber metallic sphere hovering above a dark floor, 480x480 at 20 fps, export the GLB and render the MP4; name the deliverable c3-agent-3d.mp4"
+steps:
+  - id: creative
+    action: run_script
+    intent: "Write a 3D spec from a plain-language goal and render it; every artifact is verified"
+    command: '"{eeze}" spec 3d "{goal}" --out "{run_dir}" --run'
+    timeout_s: 900
+    retries: 0
+    verify_code: "file_exists|{run_dir}/write-report.json; file_size_gt|{run_dir}/run/c3-agent-3d.mp4|50000"

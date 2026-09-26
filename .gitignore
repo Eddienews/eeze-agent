@@ -1,0 +1,26 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets & local state
+.env
+artifacts/
+spikes/out/
+
+# ui (frontend, self-hosted)
+ui/node_modules/
+ui/dist/
+ui/dist-site/
+ui/.eslintcache
+.git-commit-msg*.txt
+ui/.vite/
+ui/.lovable/
+ui/.tanstack/
+.git-commit-msg.txt
+backups/

@@ -1,0 +1,32 @@
+# Creative vertical #1 (video): render a real MP4 from the Eeze mascot with ffmpeg.
+#
+# Script-only task: `app: ""` means no window is launched and none is required —
+# both steps run via the `run_script` action under the F2 risk gate. `run_script`
+# classifies as `install_exec` by default, so this pauses for approval unless the
+# agent policy or a grant (or `--allow install_exec`) covers it.
+#
+# Artifacts land in the run's own dir (cwd default = {run_dir}):
+#   artifacts/runs/<runset>/run-01/card.mp4      (3-second 720x720 video)
+#   artifacts/runs/<runset>/run-01/poster.png    (frame at 1s)
+#   artifacts/runs/<runset>/run-01/step-*.log    (full stdout/stderr per step)
+name: video-card
+app: ""
+vars:
+  # machine-specific paths — adjust per host (ffmpeg from the gyan.dev release-essentials zip)
+  ffmpeg: "ffmpeg"
+  image: "C:/path/to/eeze-agent/ui/public/eeze.png"
+steps:
+  - id: render-card
+    action: run_script
+    intent: "Render a 3-second 720x720 MP4 card from the Eeze mascot image"
+    command: '"{ffmpeg}" -y -loop 1 -framerate 25 -t 3 -i "{image}" -vf scale=720:720 -pix_fmt yuv420p "card.mp4"'
+    timeout_s: 120
+    retries: 0
+    verify_code: "file_exists|{run_dir}/card.mp4; file_size_gt|{run_dir}/card.mp4|5000"
+  - id: poster-frame
+    action: run_script
+    intent: "Extract the poster frame at 1s from the rendered video"
+    command: '"{ffmpeg}" -y -ss 1 -i "card.mp4" -frames:v 1 "poster.png"'
+    timeout_s: 60
+    retries: 0
+    verify_code: "file_exists|{run_dir}/poster.png; file_size_gt|{run_dir}/poster.png|5000"

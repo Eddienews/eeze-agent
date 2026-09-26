@@ -1,0 +1,26 @@
+# C2 demo — the AGENT renders the 3D scene headless through the render3d vertical.
+#
+# Script-only task (`app: ""`): the loop runs the vertical's CLI via `run_script`, so the
+# whole render is gated as `install_exec` (F2) — first run pauses, approve with a
+# `scope=task` grant (+ auto_resume) and the render continues.
+#
+# Run: uv run eeze run tasks/render3d-agent.yaml
+# Artifacts land in the run's own dir (cwd default = {run_dir}):
+#   artifacts/runs/<runset>/run-01/brand-3d.mp4        (the deliverable turntable render)
+#   artifacts/runs/<runset>/run-01/report.md           (per-step status + measured facts)
+#   artifacts/runs/<runset>/run-01/work/               (still/blend/glb + generated script)
+#   artifacts/runs/<runset>/run-01/step-render.log     (the CLI's full output)
+name: render3d-agent
+app: ""
+vars:
+  # machine-specific paths — adjust per host (uv venv entry point + the scene spec)
+  eeze: "C:/path/to/eeze-agent/.venv/Scripts/eeze.exe"
+  spec: "C:/path/to/eeze-agent/specs/brand-3d.yaml"
+steps:
+  - id: render
+    action: run_script
+    intent: "Render the branded 3D scene headless with Blender, writing into this run's dir"
+    command: '"{eeze}" 3d "{spec}" --out "{run_dir}"'
+    timeout_s: 900
+    retries: 0
+    verify_code: "file_exists|{run_dir}/brand-3d.mp4; file_size_gt|{run_dir}/brand-3d.mp4|50000"

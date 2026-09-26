@@ -1,0 +1,26 @@
+# C1 demo — the AGENT runs the video editing vertical (spec-driven, ffprobe-verified).
+#
+# Script-only task (`app: ""`): the loop executes the vertical's CLI through the
+# `run_script` action, so the whole edit is gated as `install_exec` (F2) — first run
+# pauses, approve with a `scope=task` grant (+ auto_resume) and the edit continues.
+#
+# Run: uv run eeze run tasks/video-edit-agent.yaml
+# Artifacts land in the run's own dir (cwd default = {run_dir}):
+#   artifacts/runs/<runset>/run-01/mascot-teaser.mp4   (the deliverable edit)
+#   artifacts/runs/<runset>/run-01/report.md           (per-step expected vs observed)
+#   artifacts/runs/<runset>/run-01/work/               (every intermediate kept)
+#   artifacts/runs/<runset>/run-01/step-edit.log       (the CLI's full output)
+name: video-edit-agent
+app: ""
+vars:
+  # machine-specific paths — adjust per host (uv venv entry point + the edit spec)
+  eeze: "C:/path/to/eeze-agent/.venv/Scripts/eeze.exe"
+  spec: "C:/path/to/eeze-agent/specs/teaser-edit.yaml"
+steps:
+  - id: edit
+    action: run_script
+    intent: "Run the video editing vertical over the teaser spec, writing into this run's dir"
+    command: '"{eeze}" video "{spec}" --out "{run_dir}"'
+    timeout_s: 600
+    retries: 0
+    verify_code: "file_exists|{run_dir}/mascot-teaser.mp4; file_size_gt|{run_dir}/mascot-teaser.mp4|50000"

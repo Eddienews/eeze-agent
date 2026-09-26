@@ -1,0 +1,45 @@
+# Agent registry (F1: a single default agent — the multi-agent UI comes later).
+# Each future agent gets its own memory, routines, permissions and approvals lane
+# (see docs/DECISIONS/ADR-0002-multi-agent.md).
+agents:
+  - id: default
+    name: Default
+    role: generalist
+    permissions:
+      risk_classes: [read, write_local]   # send / pay require approval (F2)
+      apps: ["*"]                          # allowlist; ["*"] = any
+      allow_foreground: false              # never escalate to foreground input
+    tools: ["*"]
+    model:
+      brain: jev    # tactical brain: jev (default, typed judgments) | llm (OpenAI-compatible)
+                    # env EEZE_BRAIN overrides; see src/eeze_agent/brains/llm.py for its env
+
+  # Two named agents with distinct roles, permissions AND brains — the v2 "office of bots".
+  # Same task, different agent = different policy lane and (here) a different brain.
+  - id: finance
+    name: Finance
+    role: finance
+    permissions:
+      risk_classes: [read, write_local]   # can build documents locally; sends still gated
+      apps: ["*"]
+      allow_foreground: false
+    tools: ["*"]
+    model:
+      brain: jev
+
+  - id: ops
+    name: Ops
+    role: ops
+    permissions:
+      risk_classes: [read]                # strictly read-only — writes pause for approval
+      apps: ["*"]
+      allow_foreground: false
+    tools: ["*"]
+    model:
+      brain: llm                          # per-agent brain from config (no env needed)
+      # Model router (2026-09-23): Luna for routine work, Sol for hard work — Jev decides
+      # per run with a deterministic rules floor (see src/eeze_agent/brains/router.py).
+      tiers:
+        routine: openai/gpt-6-luna        # $0.10/$0.50 per M — mail/invoices, simple fills
+        hard: openai/gpt-6-sol            # $2/$10 per M — GUI workflows, specs, planning
+      # tier: routine                     # uncomment to force a tier for this agent

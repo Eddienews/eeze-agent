@@ -1,0 +1,52 @@
+# F1 walking skeleton — Notepad: set content, Save As a unique file, verify on disk.
+# Checks use the "|" separator so Windows paths (C:\...) stay intact.
+# Save-As is opened via the File menu (hotkey ctrl+shift+s is refused by driver
+# 0.28.2 on this XAML target — no accelerator found; the menu path is the
+# verified route, background-delivered).
+
+name: notepad-save-as
+app: Notepad
+aumid: Microsoft.WindowsNotepad_8wekyb3d8bbwe!App
+allow_foreground: false
+
+steps:
+  - id: set_content
+    action: set_text
+    intent: >-
+      Set the document's full text content to the given token. Which candidate
+      element is the input target that receives the document text?
+    text: "{token}"
+    verify_jev: "Is the document's full text content exactly '{token}' and nothing else?"
+    verify_code: "doc_equals|{token}"
+
+  - id: open_file_menu
+    action: click
+    intent: "Open the File menu of Notepad (the 'File' menu item in the menu bar)."
+    retries: 2
+
+  - id: click_save_as
+    action: click
+    intent: "Click the 'Save as' item in the open File menu, to open the Save dialog."
+    verify_code: "window_present|Save as"
+    retries: 3
+
+  - id: set_filename
+    action: set_text
+    window: "Save as"
+    candidate_filter:
+      roles: ["edit"]
+      label_contains: "File name"
+    intent: >-
+      Set the file name field to the given absolute path. Which candidate element
+      is the 'File name' input field of this Save dialog?
+    text: "{path}"
+    verify_code: "field_equals|File name|{path}"
+
+  - id: confirm_save
+    action: click
+    window: "Save as"
+    candidate_filter:
+      roles: ["button"]
+      label_contains: "Save"
+    intent: "Click the Save button to confirm saving the file with this name."
+    verify_code: "window_absent|Save as;file_exists|{path}"

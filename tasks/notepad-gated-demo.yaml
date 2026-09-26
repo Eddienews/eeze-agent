@@ -1,0 +1,24 @@
+# F2 gated-demo — proves the risk gate with a REAL run: the second step is declared
+# `risk: install_exec` (a "helper installer" in a hypothetical flow), so the loop
+# PAUSES before it. Approving resumes from the exact step and completes the run.
+
+name: notepad-gated-demo
+app: Notepad
+aumid: Microsoft.WindowsNotepad_8wekyb3d8bbwe!App
+allow_foreground: false
+
+steps:
+  - id: set_content
+    action: set_text
+    intent: >-
+      Set the document's full text content to the given token. Which candidate
+      element is the input target that receives the document text?
+    text: "{token}"
+    verify_jev: "Is the document's full text content exactly '{token}' and nothing else?"
+    verify_code: "doc_equals|{token}"
+
+  - id: install-helper
+    action: click
+    risk: install_exec  # declared floor — the gate must catch this before execution
+    intent: "Open the File menu of Notepad (the 'File' menu item in the menu bar)."
+    retries: 2

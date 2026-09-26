@@ -1,0 +1,43 @@
+# C1 demo — the mascot card + a 2 s cut of the raw teaser, joined, with a cover frame.
+#
+# Run: uv run eeze video specs/teaser-edit.yaml --out artifacts/video/c1-demo
+# Every step is verified with ffprobe (duration/size/fps/streams); a mismatch fails the
+# step and skips the rest — the report shows expected vs observed for each one.
+#
+# Paths below are absolute because a spec is a file the agent may run from anywhere;
+# sources are the raw footage generated for the demo and the shipped mascot PNG.
+name: mascot-teaser
+description: >-
+  Mascot still (2 s card) + a 2 s cut of the raw teaser footage, scaled and joined at
+  480x480/25fps; the cover frame is extracted at t=1.0 s (who: the still segment).
+sources:
+  raw: "C:/path/to/eeze-agent/artifacts/video/raw/teaser-raw.mp4"
+  mascot: "C:/path/to/eeze-agent/ui/public/eeze.png"
+steps:
+  - id: intro
+    op: still_to_video
+    source: mascot
+    duration: 2.0
+    size: [480, 480]
+    fps: 25
+  - id: cut
+    op: trim
+    input: raw
+    start: 1.5
+    duration: 2.0
+  - id: shaped
+    op: scale
+    input: cut
+    size: [480, 480]
+  - id: joined
+    op: concat
+    inputs: [intro, shaped]
+    size: [480, 480]
+    fps: 25
+  - id: cover
+    op: thumbnail
+    input: joined
+    at: 1.0
+# `output` may name a step id: the joined video is the deliverable, the cover stays in
+# work/ as evidence (its path is in the report).
+output: joined
