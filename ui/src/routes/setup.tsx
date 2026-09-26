@@ -13,15 +13,22 @@ import { Switch } from "@/components/ui/switch";
 import { ErrorState, RowSkeleton } from "@/components/data-state";
 import { routinesQuery, setupStateQuery, systemStatusQuery } from "@/lib/queries";
 import { DEMO_MODE, api, type RoutineCreateRequest } from "@/lib/api";
+import { useT, type MessageKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/setup")({
   head: () => ({ meta: [{ title: "Setup — Eeze Agents" }] }),
   component: SetupPage,
 });
 
-const STEPS = ["System check", "Connect Gmail", "First routine", "Done"] as const;
+const STEPS: MessageKey[] = [
+  "setup.stepCheck",
+  "setup.stepGmail",
+  "setup.stepRoutine",
+  "setup.stepDone",
+];
 
 function StepDots({ step }: { step: number }) {
+  const t = useT();
   return (
     <ol className="flex flex-wrap items-center gap-2 text-xs">
       {STEPS.map((label, index) => (
@@ -40,7 +47,7 @@ function StepDots({ step }: { step: number }) {
           ) : (
             <CircleDashed className="size-3" />
           )}
-          {label}
+          {t(label)}
         </li>
       ))}
     </ol>
@@ -64,13 +71,14 @@ function CheckRow({ ok, label, detail }: { ok: boolean; label: string; detail?: 
 }
 
 function SetupPage() {
+  const t = useT();
   const queryClient = useQueryClient();
   const state = useQuery(setupStateQuery());
   const status = useQuery(systemStatusQuery());
   const notify = useMutation({
     mutationFn: (enabled: boolean) => api.setNotify(enabled),
     onSuccess: async (result) => {
-      toast.success(result.enabled ? "Approval alerts on." : "Approval alerts off.");
+      toast.success(result.enabled ? t("setup.alertsOn") : t("setup.alertsOff"));
       await queryClient.invalidateQueries({ queryKey: ["system-status"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -99,12 +107,12 @@ function SetupPage() {
       if (result.ok) {
         setTestResult({
           ok: true,
-          message: `Connected — ${result.messages ?? "?"} messages in the inbox.`,
+          message: t("setup.connected", { n: result.messages ?? "?" }),
         });
-        toast.success("Mailbox connection works.");
+        toast.success(t("setup.mailboxWorks"));
       } else {
-        setTestResult({ ok: false, message: result.error ?? "Connection failed." });
-        toast.error("Connection failed.");
+        setTestResult({ ok: false, message: result.error ?? t("setup.connFailed") });
+        toast.error(t("setup.connFailed"));
       }
     },
     onError: (error: Error) => setTestResult({ ok: false, message: error.message }),
@@ -113,7 +121,7 @@ function SetupPage() {
   const save = useMutation({
     mutationFn: () => api.saveImap({ host, user, app_password: password }),
     onSuccess: () => {
-      toast.success("Saved to your machine only (.env).");
+      toast.success(t("setup.savedLocal"));
       setPassword("");
       refresh();
     },
@@ -123,7 +131,7 @@ function SetupPage() {
   const createRoutine = useMutation({
     mutationFn: (body: RoutineCreateRequest) => api.createRoutine(body),
     onSuccess: () => {
-      toast.success("Routine created — it will run on schedule.");
+      toast.success(t("setup.routineCreated"));
       refresh();
       setStep(3);
     },
@@ -133,7 +141,7 @@ function SetupPage() {
   const finish = useMutation({
     mutationFn: () => api.completeSetup(),
     onSuccess: () => {
-      toast.success("Setup complete.");
+      toast.success(t("setup.complete"));
       refresh();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -147,11 +155,9 @@ function SetupPage() {
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="flex items-center gap-2">
           <Rocket className="size-5 text-muted-foreground" />
-          <h1 className="text-2xl font-semibold tracking-tight">Set up Eeze</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("setup.title")}</h1>
         </div>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Three quick steps — everything stays on this machine.
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">{t("setup.intro")}</p>
         <div className="mt-4">
           <StepDots step={step} />
         </div>
@@ -165,18 +171,18 @@ function SetupPage() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <ShieldCheck className="size-4 text-success" />
-                <h2 className="text-base font-semibold">Setup is already complete</h2>
+                <h2 className="text-base font-semibold">{t("setup.alreadyDone")}</h2>
               </div>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               <Button asChild size="sm">
-                <Link to="/routines">Open routines</Link>
+                <Link to="/routines">{t("setup.openRoutines")}</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
-                <Link to="/approvals">Open approvals</Link>
+                <Link to="/approvals">{t("setup.openApprovals")}</Link>
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setStep(1)}>
-                Review settings
+                {t("setup.review")}
               </Button>
             </CardContent>
           </Card>
@@ -185,59 +191,50 @@ function SetupPage() {
             <CardContent className="pt-6">
               {step === 0 && (
                 <div>
-                  <h2 className="text-base font-semibold">System check</h2>
+                  <h2 className="text-base font-semibold">{t("setup.stepCheck")}</h2>
                   <ul className="mt-2 divide-y divide-border">
                     <CheckRow
                       ok={Boolean(state.data?.daemon_running)}
-                      label="Background service"
+                      label={t("setup.service")}
                       detail={
                         state.data?.daemon_running
-                          ? `Running (v${state.data.version})`
-                          : "Not running — double-click install.cmd (or the Eeze Agent Desktop shortcut)."
+                          ? t("setup.serviceRunning", { v: state.data.version })
+                          : t("setup.serviceOff")
                       }
                     />
                     <CheckRow
                       ok={Boolean(state.data?.imap_configured)}
-                      label="Mailbox connected"
+                      label={t("setup.mailbox")}
                       detail={
                         state.data?.imap_configured
                           ? `${state.data.imap_user} @ ${state.data.imap_host ?? "imap.gmail.com"}`
-                          : "Not yet — the next step connects Gmail (read-only)."
+                          : t("setup.mailboxNotYet")
                       }
                     />
                     <CheckRow
                       ok={(state.data?.routines_count ?? 0) > 0}
-                      label="Routines"
-                      detail={`${state.data?.routines_count ?? 0} configured`}
+                      label={t("nav.routines")}
+                      detail={t("setup.routinesCount", { n: state.data?.routines_count ?? 0 })}
                     />
                     <CheckRow
                       ok={Boolean(state.data?.tools?.["ffmpeg"])}
-                      label="ffmpeg (video & photo missions)"
-                      detail={
-                        state.data?.tools?.["ffmpeg"] ??
-                        "Not found — install it (winget install Gyan.FFmpeg) to edit video and photos."
-                      }
+                      label={t("setup.ffmpeg")}
+                      detail={state.data?.tools?.["ffmpeg"] ?? t("setup.ffmpegMissing")}
                     />
                     <CheckRow
                       ok={Boolean(state.data?.tools?.["blender"])}
-                      label="Blender (3D missions)"
-                      detail={
-                        state.data?.tools?.["blender"] ??
-                        "Not found — install Blender from blender.org to render 3D scenes."
-                      }
+                      label={t("setup.blender")}
+                      detail={state.data?.tools?.["blender"] ?? t("setup.blenderMissing")}
                     />
                     <CheckRow
                       ok={Boolean(state.data?.tools?.["codex"])}
-                      label="Codex CLI (writes mission plans on your subscription)"
-                      detail={
-                        state.data?.tools?.["codex"] ??
-                        "Not found — plans will use the model provider set in Settings instead."
-                      }
+                      label={t("setup.codex")}
+                      detail={state.data?.tools?.["codex"] ?? t("setup.codexMissing")}
                     />
                   </ul>
                   <div className="mt-4 flex gap-2">
                     <Button size="sm" onClick={() => setStep(1)}>
-                      Continue
+                      {t("setup.continue")}
                     </Button>
                   </div>
                 </div>
@@ -245,20 +242,20 @@ function SetupPage() {
 
               {step === 1 && (
                 <div>
-                  <h2 className="text-base font-semibold">Connect Gmail (read-only)</h2>
+                  <h2 className="text-base font-semibold">{t("setup.gmailTitle")}</h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Eeze reads invoices from your mailbox and never marks, moves, or deletes email.
-                    Use a Google <span className="font-medium">app password</span> — the value is
-                    written straight to the local <code>.env</code> and never shown again.
+                    {t("setup.gmailIntro1")}{" "}
+                    <span className="font-medium">{t("setup.gmailIntro2")}</span>{" "}
+                    {t("setup.gmailIntro3")} <code>.env</code> {t("setup.gmailIntro4")}
                   </p>
                   {state.data?.imap_configured && (
                     <p className="mt-3 rounded-md border border-success/25 bg-success/10 px-3 py-2 text-xs text-success">
-                      Currently connected as {state.data.imap_user}. Saving again replaces it.
+                      {t("setup.currentlyAs", { user: state.data.imap_user ?? "" })}
                     </p>
                   )}
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="grid gap-1.5">
-                      <Label htmlFor="imap-host">IMAP host</Label>
+                      <Label htmlFor="imap-host">{t("setup.imapHost")}</Label>
                       <Input
                         id="imap-host"
                         value={host}
@@ -266,7 +263,7 @@ function SetupPage() {
                       />
                     </div>
                     <div className="grid gap-1.5">
-                      <Label htmlFor="imap-user">Email address</Label>
+                      <Label htmlFor="imap-user">{t("setup.email")}</Label>
                       <Input
                         id="imap-user"
                         value={user}
@@ -275,7 +272,7 @@ function SetupPage() {
                       />
                     </div>
                     <div className="grid gap-1.5 sm:col-span-2">
-                      <Label htmlFor="imap-pass">App password</Label>
+                      <Label htmlFor="imap-pass">{t("setup.appPassword")}</Label>
                       <Input
                         id="imap-pass"
                         type="password"
@@ -304,17 +301,17 @@ function SetupPage() {
                       onClick={() => test.mutate()}
                       disabled={test.isPending || !user || !password}
                     >
-                      {test.isPending ? "Testing…" : "Test connection"}
+                      {test.isPending ? t("setup.testing") : t("setup.testConn")}
                     </Button>
                     <Button
                       size="sm"
                       onClick={() => save.mutate()}
                       disabled={save.isPending || !user || !password}
                     >
-                      {save.isPending ? "Saving…" : "Save"}
+                      {save.isPending ? t("setup.saving") : t("m.save")}
                     </Button>
                     <Button size="sm" variant="ghost" onClick={() => setStep(2)}>
-                      {state.data?.imap_configured ? "Continue" : "Skip for now"}
+                      {state.data?.imap_configured ? t("setup.continue") : t("setup.skipForNow")}
                     </Button>
                   </div>
                 </div>
@@ -322,12 +319,13 @@ function SetupPage() {
 
               {step === 2 && (
                 <div>
-                  <h2 className="text-base font-semibold">First routine</h2>
+                  <h2 className="text-base font-semibold">{t("setup.stepRoutine")}</h2>
                   {(routines.data ?? []).length > 0 ? (
                     <div className="mt-3">
                       <p className="text-sm text-muted-foreground">
-                        You already have {routines.data?.length} routine
-                        {(routines.data?.length ?? 0) > 1 ? "s" : ""}:
+                        {(routines.data?.length ?? 0) > 1
+                          ? t("setup.haveMany", { n: routines.data?.length ?? 0 })
+                          : t("setup.haveOne", { n: routines.data?.length ?? 0 })}
                       </p>
                       <ul className="mt-2 space-y-1">
                         {(routines.data ?? []).map((routine) => (
@@ -340,13 +338,10 @@ function SetupPage() {
                     </div>
                   ) : (
                     <>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        The classic one: scan the mailbox every morning, build the verified invoice
-                        ledger, and email you the summary — the email waits for your approval.
-                      </p>
+                      <p className="mt-1 text-sm text-muted-foreground">{t("setup.classic")}</p>
                       <div className="mt-4 grid gap-3">
                         <div className="grid gap-1.5">
-                          <Label htmlFor="setup-email-to">Send the summary to</Label>
+                          <Label htmlFor="setup-email-to">{t("setup.sendTo")}</Label>
                           <Input
                             id="setup-email-to"
                             value={summaryTo}
@@ -357,7 +352,7 @@ function SetupPage() {
                         <div className="flex items-center gap-2">
                           <Switch checked={sendSummary} onCheckedChange={setSendSummary} />
                           <span className="text-sm text-muted-foreground">
-                            Email summary enabled (gated by your approval)
+                            {t("setup.summaryOn")}
                           </span>
                         </div>
                       </div>
@@ -366,7 +361,7 @@ function SetupPage() {
                   <div className="mt-4 flex flex-wrap gap-2">
                     {(routines.data ?? []).length > 0 ? (
                       <Button size="sm" onClick={() => setStep(3)}>
-                        Continue
+                        {t("setup.continue")}
                       </Button>
                     ) : (
                       <Button
@@ -387,11 +382,11 @@ function SetupPage() {
                         }
                         disabled={createRoutine.isPending}
                       >
-                        {createRoutine.isPending ? "Creating…" : "Create daily invoices routine"}
+                        {createRoutine.isPending ? t("setup.creating") : t("setup.createRoutine")}
                       </Button>
                     )}
                     <Button size="sm" variant="ghost" onClick={() => setStep(3)}>
-                      Skip
+                      {t("setup.skip")}
                     </Button>
                   </div>
                 </div>
@@ -402,20 +397,19 @@ function SetupPage() {
                   <div className="mx-auto grid size-12 place-items-center rounded-full bg-success/12">
                     <CheckCircle2 className="size-6 text-success" />
                   </div>
-                  <h2 className="mt-3 text-lg font-semibold">You're set</h2>
+                  <h2 className="mt-3 text-lg font-semibold">{t("setup.youreSet")}</h2>
                   <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                    Schedules run in the background while the service is on. When a routine reaches
-                    a risky step, it pauses and waits for your click in Approvals.
+                    {t("setup.doneBody")}
                   </p>
                   <div className="mt-5 flex flex-wrap justify-center gap-2">
                     <Button size="sm" onClick={() => finish.mutate()} disabled={finish.isPending}>
-                      {finish.isPending ? "Finishing…" : "Finish setup"}
+                      {finish.isPending ? t("setup.finishing") : t("setup.finish")}
                     </Button>
                     <Button asChild size="sm" variant="outline">
-                      <Link to="/routines">Open routines</Link>
+                      <Link to="/routines">{t("setup.openRoutines")}</Link>
                     </Button>
                     <Button asChild size="sm" variant="ghost">
-                      <Link to="/approvals">Open approvals</Link>
+                      <Link to="/approvals">{t("setup.openApprovals")}</Link>
                     </Button>
                   </div>
                 </div>
@@ -429,16 +423,13 @@ function SetupPage() {
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-semibold">Notifications</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    A Windows alert when a run pauses for approval — visible without stealing focus
-                    from whatever you are doing.
-                  </p>
+                  <h2 className="text-base font-semibold">{t("setup.notifications")}</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">{t("setup.notifyBody")}</p>
                 </div>
                 <Switch
                   checked={status.data?.notifications_enabled ?? true}
                   disabled={!status.data || notify.isPending}
-                  aria-label="Desktop alerts for approvals"
+                  aria-label={t("setup.notifyAria")}
                   onCheckedChange={(checked) => notify.mutate(checked)}
                 />
               </div>
@@ -446,11 +437,7 @@ function SetupPage() {
           </Card>
         )}
 
-        {DEMO_MODE && (
-          <p className="mt-4 text-xs text-muted-foreground">
-            Demo mode: setup runs on your own machine after install.
-          </p>
-        )}
+        {DEMO_MODE && <p className="mt-4 text-xs text-muted-foreground">{t("setup.demo")}</p>}
       </div>
     </>
   );

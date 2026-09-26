@@ -456,7 +456,7 @@ function MissionsPage() {
                     </SelectTrigger>
                     <SelectContent>
                       {(agents.data ?? []).length === 0 && (
-                        <SelectItem value="default">Default</SelectItem>
+                        <SelectItem value="default">{t("m2.defaultAgent")}</SelectItem>
                       )}
                       {(agents.data ?? []).map((agent) => (
                         <SelectItem key={agent.id} value={agent.id}>

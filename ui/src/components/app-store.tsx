@@ -5,6 +5,7 @@ import {
   type Agent,
   type Approval,
 } from "@/lib/mock-data";
+import { useT } from "@/lib/i18n";
 
 export interface SystemEvent {
   id: string;
@@ -39,6 +40,7 @@ const now = () =>
   new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
+  const t = useT();
   const [agents, setAgents] = useState<Agent[]>(seedAgents);
   const [approvals, setApprovals] = useState<Approval[]>(seedApprovals);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -76,12 +78,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setDaemonRunning(false);
       logSystemEvent({
         timestamp,
-        label: "Emergency stop executed",
-        detail: "All agents terminated and cua-driver daemon stopped.",
+        label: t("store.stopLabel"),
+        detail: t("store.stopDetail"),
         severity: "critical",
       });
     },
-    [logSystemEvent],
+    [logSystemEvent, t],
   );
 
   const resolveApproval = useCallback(

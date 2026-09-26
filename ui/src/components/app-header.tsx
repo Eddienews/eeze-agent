@@ -63,7 +63,7 @@ export function AppHeader() {
     .map(
       (a) =>
         `${a.agent_id}: $${a.spent_usd.toFixed(4)}` +
-        (a.budget_usd === null ? " (no cap)" : ` of $${a.budget_usd.toFixed(2)}`),
+        (a.budget_usd === null ? t("hdr.noCap") : t("hdr.ofCap", { cap: `$${a.budget_usd.toFixed(2)}` })),
     )
     .join("\n");
 
@@ -71,7 +71,7 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       {!DEMO_MODE && <UpdateBanner />}
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-6">
-        <Link to="/demo" className="flex items-center gap-2" aria-label="Eeze Agents home">
+        <Link to="/demo" className="flex items-center gap-2" aria-label={t("hdr.home")}>
           <span className="grid size-6 shrink-0 place-items-center rounded-md bg-[#f4f1ea]">
             <img
               src="/eeze-mark.png"
@@ -85,7 +85,7 @@ export function AppHeader() {
           <span className="text-sm font-semibold tracking-tight">Eeze Agents</span>
         </Link>
 
-        <nav aria-label="Main" className="ml-2 hidden items-center gap-1 sm:flex">
+        <nav aria-label={t("hdr.mainNav")} className="ml-2 hidden items-center gap-1 sm:flex">
           {nav.map((item) => (
             <Link
               key={item.to}
@@ -106,7 +106,7 @@ export function AppHeader() {
         <div className="ml-auto flex items-center gap-1.5">
           {needsSetup && (
             <Button variant="outline" size="sm" asChild className="gap-1.5">
-              <Link to="/setup" title="Finish setting up Eeze">
+              <Link to="/setup" title={t("hdr.finishSetup")}>
                 <Rocket className="size-3.5" />
                 {t("header.setup")}
               </Link>
@@ -129,11 +129,11 @@ export function AppHeader() {
           )}
           {DEMO_MODE ? (
             <span
-              title="This is a preview with sample data. The real app runs on your machine."
+              title={t("hdr.demoTitle")}
               className="mr-1 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
             >
               <span className="size-1.5 rounded-full bg-muted-foreground/50" />
-              Demo · Sample data
+              {t("hdr.demoBadge")}
             </span>
           ) : (
             <ConnectionStatus />
@@ -151,12 +151,12 @@ export function AppHeader() {
             </kbd>
           </Button>
           {!DEMO_MODE && <LanguageToggle />}
-          <Button variant="ghost" size="icon" asChild aria-label="Approval inbox">
+          <Button variant="ghost" size="icon" asChild aria-label={t("cmd.approvals")}>
             <Link to={DEMO_MODE ? "/demo/approvals" : "/approvals"}>
               <Inbox className="size-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon" aria-label="Settings" asChild>
+          <Button variant="ghost" size="icon" aria-label={t("hdr.settings")} asChild>
             <Link to="/demo/settings">
               <Settings className="size-4" />
             </Link>
@@ -165,33 +165,33 @@ export function AppHeader() {
             variant="ghost"
             size="icon"
             onClick={toggle}
-            aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+            aria-label={theme === "dark" ? t("theme.toLight") : t("theme.toDark")}
           >
             {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Tray menu">
+              <Button variant="ghost" size="icon" aria-label={t("hdr.trayMenu")}>
                 <CircuitBoard className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Eeze Agents tray</DropdownMenuLabel>
+              <DropdownMenuLabel>{t("hdr.tray")}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/demo">
                   <LayoutGrid className="size-4" />
-                  Open team dashboard
+                  {t("hdr.openTeam")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setCommandOpen(true)}>
                 <Search className="size-4" />
-                Command bar
+                {t("hdr.commandBar")}
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/demo/settings">
                   <Settings className="size-4" />
-                  Settings
+                  {t("hdr.settings")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -200,7 +200,7 @@ export function AppHeader() {
                 onSelect={() => setKillSwitchOpen(true)}
               >
                 <OctagonX className="size-4" />
-                Emergency stop
+                {t("kill.emergency")}
                 <span className="ml-auto font-mono text-[10px] text-muted-foreground">⌃⇧⌥K</span>
               </DropdownMenuItem>
             </DropdownMenuContent>

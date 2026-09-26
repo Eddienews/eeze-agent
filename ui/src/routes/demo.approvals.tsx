@@ -17,7 +17,8 @@ import {
 import { AgentAvatar } from "@/components/agent-avatar";
 import { RiskBadge } from "@/components/status-badge";
 import { useStore } from "@/components/app-store";
-import { riskLabel, type RiskLevel } from "@/lib/mock-data";
+import { type RiskLevel } from "@/lib/mock-data";
+import { useT, type MessageKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/demo/approvals")({
   head: () => ({
@@ -39,7 +40,16 @@ export const Route = createFileRoute("/demo/approvals")({
 
 const risks: (RiskLevel | "all")[] = ["all", "read", "write", "send", "pay"];
 
+const riskKey: Record<RiskLevel, MessageKey> = {
+  read: "risk.read",
+  write: "da.risk.write",
+  send: "risk.external_send",
+  pay: "da.risk.pay",
+  exec: "da.risk.exec",
+};
+
 function ApprovalInbox() {
+  const t = useT();
   const { approvals: localApprovals, agents: localAgents, resolveApproval } = useStore();
   const [agentFilter, setAgentFilter] = useState("all");
   const [riskFilter, setRiskFilter] = useState<RiskLevel | "all">("all");
@@ -65,16 +75,18 @@ function ApprovalInbox() {
   const act = (id: string, label: string) => {
     resolveApproval(id);
     setResolved((list) => [...list, id]);
-    toast.success(`${label} — action resolved`);
+    toast.success(t("da.resolved", { label }));
   };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Approval inbox</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("da.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {approvals.length} action{approvals.length === 1 ? "" : "s"} waiting on you.
+            {t(approvals.length === 1 ? "da.waitingOne" : "da.waitingMany", {
+              n: approvals.length,
+            })}
           </p>
         </div>
         <RefreshButton
@@ -84,19 +96,19 @@ function ApprovalInbox() {
       </div>
       {approvalsResult.isError && (
         <ErrorState
-          message="We couldn't load pending approvals."
-          detail="Showing sample data so the design stays reviewable."
+          message={t("da.loadError")}
+          detail={t("team.sampleData")}
           onRetry={() => void approvalsResult.refetch()}
         />
       )}
 
       <div className="mt-6 flex flex-wrap gap-2">
         <Select value={agentFilter} onValueChange={setAgentFilter}>
-          <SelectTrigger className="w-full sm:w-48" aria-label="Filter by agent">
-            <SelectValue placeholder="All agents" />
+          <SelectTrigger className="w-full sm:w-48" aria-label={t("da.filterAgent")}>
+            <SelectValue placeholder={t("da.allAgents")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All agents</SelectItem>
+            <SelectItem value="all">{t("da.allAgents")}</SelectItem>
             {agents.map((a) => (
               <SelectItem key={a.id} value={a.id}>
                 {a.name}
@@ -105,13 +117,13 @@ function ApprovalInbox() {
           </SelectContent>
         </Select>
         <Select value={riskFilter} onValueChange={(v) => setRiskFilter(v as RiskLevel | "all")}>
-          <SelectTrigger className="w-full sm:w-44" aria-label="Filter by risk level">
-            <SelectValue placeholder="All risk levels" />
+          <SelectTrigger className="w-full sm:w-44" aria-label={t("da.filterRisk")}>
+            <SelectValue placeholder={t("da.allRisks")} />
           </SelectTrigger>
           <SelectContent>
             {risks.map((r) => (
               <SelectItem key={r} value={r}>
-                {r === "all" ? "All risk levels" : riskLabel[r]}
+                {r === "all" ? t("da.allRisks") : t(riskKey[r])}
               </SelectItem>
             ))}
           </SelectContent>
@@ -144,27 +156,27 @@ function ApprovalInbox() {
                 </pre>
               </CardContent>
               <CardFooter className="grid grid-cols-2 gap-2 border-t bg-card pt-4 sm:flex sm:flex-wrap sm:border-t-0 sm:bg-transparent sm:pt-0">
-                <Button size="sm" onClick={() => act(item.id, "Approved")}>
-                  <Check className="size-4" /> Approve
+                <Button size="sm" onClick={() => act(item.id, t("da.approved"))}>
+                  <Check className="size-4" /> {t("da.approve")}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => act(item.id, "Rejected")}>
-                  <X className="size-4" /> Reject
+                <Button size="sm" variant="outline" onClick={() => act(item.id, t("da.rejected"))}>
+                  <X className="size-4" /> {t("da.reject")}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => toast.info("Opening editor for this action")}
+                  onClick={() => toast.info(t("da.openingEditor"))}
                 >
-                  <Pencil className="size-4" /> Edit
+                  <Pencil className="size-4" /> {t("da.edit")}
                 </Button>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() =>
-                    toast.info(`${agent?.name}: I proposed this from the thread context.`)
+                    toast.info(t("da.why", { name: agent?.name ?? "" }))
                   }
                 >
-                  <HelpCircle className="size-4" /> Ask why
+                  <HelpCircle className="size-4" /> {t("da.askWhy")}
                 </Button>
               </CardFooter>
             </Card>
@@ -173,8 +185,8 @@ function ApprovalInbox() {
 
         {visible.length === 0 && (
           <div className="rounded-lg border border-dashed border-border py-16 text-center">
-            <p className="text-sm font-medium">You're all caught up.</p>
-            <p className="mt-1 text-sm text-muted-foreground">No pending approvals.</p>
+            <p className="text-sm font-medium">{t("da.caughtUp")}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{t("da.noPending")}</p>
           </div>
         )}
       </div>

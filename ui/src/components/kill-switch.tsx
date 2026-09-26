@@ -5,6 +5,7 @@ import { AgentAvatar } from "@/components/agent-avatar";
 import { useStore } from "@/components/app-store";
 import { TypedConfirmDialog } from "@/components/typed-confirm-dialog";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/lib/i18n";
 
 export function useKillSwitch() {
   const { agents, killSwitchOpen, setKillSwitchOpen, stopAllAgents } = useStore();
@@ -13,13 +14,14 @@ export function useKillSwitch() {
 }
 
 export function KillSwitchTrigger() {
+  const t = useT();
   const { setKillSwitchOpen } = useStore();
   return (
     <Button
       variant="ghost"
       size="icon"
-      aria-label="Emergency stop — kill all agents"
-      title="Emergency stop (Ctrl+Shift+Alt+K)"
+      aria-label={t("kill.aria")}
+      title={t("kill.title", { keys: "Ctrl+Shift+Alt+K" })}
       onClick={() => setKillSwitchOpen(true)}
       className="text-destructive hover:bg-destructive/10 hover:text-destructive"
     >
@@ -30,6 +32,7 @@ export function KillSwitchTrigger() {
 
 export function KillSwitchDialog() {
   const { activeAgents, killSwitchOpen, setKillSwitchOpen, stopAllAgents } = useKillSwitch();
+  const t = useT();
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -50,8 +53,8 @@ export function KillSwitchDialog() {
     });
     stopAllAgents(timestamp);
     setKillSwitchOpen(false);
-    toast.error(`All agents stopped at ${timestamp}`, {
-      description: "cua-driver daemon terminated. Restart it from Settings › System.",
+    toast.error(t("kill.toast", { time: timestamp }), {
+      description: t("kill.toastDetail"),
     });
   };
 
@@ -59,15 +62,15 @@ export function KillSwitchDialog() {
     <TypedConfirmDialog
       open={killSwitchOpen}
       onOpenChange={setKillSwitchOpen}
-      title="Emergency Stop — Kill all agents?"
-      description="This will immediately terminate all running agents and stop the cua-driver daemon. No further actions will execute until you manually restart them."
+      title={t("kill.dialogTitle")}
+      description={t("kill.dialogBody")}
       keyword="STOP"
-      action="Kill All"
+      action={t("kill.action")}
       onConfirm={confirm}
     >
       <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Agents that will be killed
+          {t("kill.list")}
         </p>
         {activeAgents.length ? (
           <ul className="mt-3 space-y-2">
@@ -85,7 +88,7 @@ export function KillSwitchDialog() {
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-sm text-muted-foreground">No agents are currently active.</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("kill.none")}</p>
         )}
       </div>
     </TypedConfirmDialog>

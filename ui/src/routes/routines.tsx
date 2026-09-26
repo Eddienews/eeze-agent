@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { ErrorState, RefreshButton, RowSkeleton } from "@/components/data-state";
 import { agentsQuery, routineRunsQuery, routinesQuery } from "@/lib/queries";
 import { DEMO_MODE, api, type ApiRoutine, type RoutineCreateRequest } from "@/lib/api";
+import { useT, type MessageKey, type Translate } from "@/lib/i18n";
 
 export const Route = createFileRoute("/routines")({
   head: () => ({ meta: [{ title: "Routines — Eeze Agents" }] }),
@@ -28,9 +29,11 @@ const statusStyles: Record<string, string> = {
   error: "bg-destructive/12 text-destructive border-destructive/30",
 };
 
-function statusLabel(status?: string | null) {
-  if (!status) return "never ran";
-  return status.replace(/_/g, " ");
+function statusLabel(t: Translate, status?: string | null) {
+  if (!status) return t("m.neverRan");
+  const key = `status.${status}` as MessageKey;
+  const label = t(key);
+  return label === key ? status.replace(/_/g, " ") : label;
 }
 
 function fmt(iso?: string | null) {
@@ -45,20 +48,21 @@ function fmt(iso?: string | null) {
   });
 }
 
-function scheduleLabel(routine: ApiRoutine) {
+function scheduleLabel(routine: ApiRoutine, t: Translate) {
   const s = routine.schedule;
-  if (s.type === "daily") return `Daily at ${s.at ?? "08:00"}`;
-  if (s.type === "every") return `Every ${s.minutes ?? "?"} min`;
+  if (s.type === "daily") return t("rt.dailyAt", { at: s.at ?? "08:00" });
+  if (s.type === "every") return t("rt.everyMin", { n: s.minutes ?? "?" });
   return s.type;
 }
 
-function kindLabel(kind: string) {
-  return kind === "invoices" ? "Invoices" : kind === "task" ? "Task" : kind;
+function kindLabel(kind: string, t: Translate) {
+  return kind === "invoices" ? t("rt.invoices") : kind === "task" ? t("rt.task") : kind;
 }
 
 /* ------------------------------- create panel ------------------------------ */
 
 function CreateForm({ onDone }: { onDone: () => void }) {
+  const t = useT();
   const queryClient = useQueryClient();
   const agents = useQuery(agentsQuery());
   const [kind, setKind] = useState<"invoices" | "task">("invoices");
@@ -76,7 +80,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
   const create = useMutation({
     mutationFn: (body: RoutineCreateRequest) => api.createRoutine(body),
     onSuccess: async (routine) => {
-      toast.success(`Routine "${routine.name}" saved — next run ${fmt(routine.next_run_at)}.`);
+      toast.success(t("rt.saved", { name: routine.name, next: fmt(routine.next_run_at) }));
       await queryClient.invalidateQueries({ queryKey: ["routines"] });
       onDone();
     },
@@ -109,7 +113,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
     <Card className="mt-6">
       <CardContent className="grid gap-4 pt-6 sm:grid-cols-2">
         <div className="grid gap-1.5">
-          <Label htmlFor="routine-id">ID (slug)</Label>
+          <Label htmlFor="routine-id">{t("rt.idSlug")}</Label>
           <Input
             id="routine-id"
             value={id}
@@ -118,16 +122,16 @@ function CreateForm({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor="routine-name">Name</Label>
+          <Label htmlFor="routine-name">{t("m.name")}</Label>
           <Input
             id="routine-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Gmail invoices"
+            placeholder={t("rt.namePlaceholder")}
           />
         </div>
         <div className="grid gap-1.5">
-          <Label>Kind</Label>
+          <Label>{t("m.kind")}</Label>
           <div className="flex gap-2">
             <Button
               type="button"
@@ -135,7 +139,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
               size="sm"
               onClick={() => setKind("invoices")}
             >
-              Invoices
+              {t("rt.invoices")}
             </Button>
             <Button
               type="button"
@@ -143,12 +147,12 @@ function CreateForm({ onDone }: { onDone: () => void }) {
               size="sm"
               onClick={() => setKind("task")}
             >
-              Task (YAML)
+              {t("rt.taskYaml")}
             </Button>
           </div>
         </div>
         <div className="grid gap-1.5">
-          <Label>Agent</Label>
+          <Label>{t("m.agent")}</Label>
           <div className="flex flex-wrap gap-2">
             {(agents.data ?? []).map((agent) => (
               <Button
@@ -165,7 +169,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
           </div>
         </div>
         <div className="grid gap-1.5">
-          <Label>Schedule</Label>
+          <Label>{t("m.schedule")}</Label>
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -173,7 +177,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
               size="sm"
               onClick={() => setSchedType("daily")}
             >
-              Daily
+              {t("m.daily")}
             </Button>
             <Button
               type="button"
@@ -181,7 +185,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
               size="sm"
               onClick={() => setSchedType("every")}
             >
-              Every…
+              {t("m.every")}
             </Button>
             {schedType === "daily" ? (
               <Input
@@ -199,7 +203,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
                   onChange={(e) => setMinutes(Number(e.target.value))}
                   className="w-20"
                 />
-                min
+                {t("m.min")}
               </div>
             )}
           </div>
@@ -208,7 +212,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
         {kind === "invoices" ? (
           <>
             <div className="grid gap-1.5">
-              <Label htmlFor="routine-search">Mailbox search (optional)</Label>
+              <Label htmlFor="routine-search">{t("rt.search")}</Label>
               <Input
                 id="routine-search"
                 value={search}
@@ -217,7 +221,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
               />
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="routine-email">Email the summary to (optional)</Label>
+              <Label htmlFor="routine-email">{t("rt.emailTo")}</Label>
               <Input
                 id="routine-email"
                 value={emailTo}
@@ -232,13 +236,13 @@ function CreateForm({ onDone }: { onDone: () => void }) {
                 onCheckedChange={setEmailSummary}
               />
               <Label htmlFor="routine-summary" className="text-sm text-muted-foreground">
-                Send the summary by email — risky steps wait for your approval first.
+                {t("rt.emailSummary")}
               </Label>
             </div>
           </>
         ) : (
           <div className="grid gap-1.5 sm:col-span-2">
-            <Label htmlFor="routine-task">Task YAML path</Label>
+            <Label htmlFor="routine-task">{t("rt.taskPath")}</Label>
             <Input
               id="routine-task"
               value={taskPath}
@@ -250,10 +254,10 @@ function CreateForm({ onDone }: { onDone: () => void }) {
 
         <div className="flex gap-2 sm:col-span-2">
           <Button onClick={submit} disabled={create.isPending || !id.trim()}>
-            {create.isPending ? "Saving…" : "Save routine"}
+            {create.isPending ? t("rt.saving") : t("rt.save")}
           </Button>
           <Button variant="ghost" onClick={onDone}>
-            Cancel
+            {t("m.cancel")}
           </Button>
         </div>
       </CardContent>
@@ -264,6 +268,7 @@ function CreateForm({ onDone }: { onDone: () => void }) {
 /* ------------------------------ routine card ------------------------------ */
 
 function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel: string }) {
+  const t = useT();
   const queryClient = useQueryClient();
   const [showHistory, setShowHistory] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -274,7 +279,7 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
   const toggle = useMutation({
     mutationFn: (enabled: boolean) => api.setRoutineEnabled(routine.id, enabled),
     onSuccess: async (_r, enabled) => {
-      toast.success(enabled ? "Routine enabled." : "Routine paused.");
+      toast.success(enabled ? t("rt.toast.enabled") : t("rt.toast.paused"));
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -283,7 +288,7 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
   const runNow = useMutation({
     mutationFn: () => api.runRoutineNow(routine.id),
     onSuccess: () => {
-      toast.success("Routine is starting. If it hits a risky step it will wait in Approvals.");
+      toast.success(t("rt.toast.starting"));
       setTimeout(() => void invalidate(), 1500);
     },
     onError: (error: Error) => toast.error(error.message),
@@ -292,7 +297,7 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
   const remove = useMutation({
     mutationFn: () => api.removeRoutine(routine.id),
     onSuccess: async () => {
-      toast.success("Routine removed.");
+      toast.success(t("rt.toast.removed"));
       await invalidate();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -311,14 +316,14 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold">{routine.name}</h2>
               <Badge variant="outline" className="font-medium">
-                {isMission ? "Mission" : kindLabel(routine.kind)}
+                {isMission ? t("rt.mission") : kindLabel(routine.kind, t)}
               </Badge>
               {isMission && (
                 <Link
                   to="/missions"
                   className="text-xs text-muted-foreground underline underline-offset-2"
                 >
-                  open mission
+                  {t("rt.openMission")}
                 </Link>
               )}
               <Badge variant="outline" className="font-medium">
@@ -329,14 +334,14 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
                   variant="outline"
                   className="border-orange/30 bg-orange/15 font-medium text-orange"
                 >
-                  Email · gated
+                  {t("rt.emailGated")}
                 </Badge>
               )}
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
               <CalendarClock className="mr-1 inline size-3.5 align-[-2px]" />
-              {scheduleLabel(routine)} · next {fmt(routine.next_run_at)}
-              {routine.last_run_at ? ` · last ${fmt(routine.last_run_at)}` : ""}
+              {scheduleLabel(routine, t)} · {t("rt.next", { at: fmt(routine.next_run_at) })}
+              {routine.last_run_at ? ` · ${t("rt.last", { at: fmt(routine.last_run_at) })}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -344,16 +349,16 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
               variant="outline"
               className={statusStyles[status] ?? "bg-muted text-muted-foreground"}
             >
-              {statusLabel(routine.last_status)}
+              {statusLabel(t, routine.last_status)}
             </Badge>
             <div className="flex items-center gap-1.5">
               <Switch
                 checked={routine.enabled}
                 onCheckedChange={(value) => toggle.mutate(value)}
-                aria-label={routine.enabled ? "Pause routine" : "Enable routine"}
+                aria-label={routine.enabled ? t("rt.pause") : t("rt.enable")}
               />
               <span className="text-xs text-muted-foreground">
-                {routine.enabled ? "On" : "Off"}
+                {routine.enabled ? t("rt.on") : t("rt.off")}
               </span>
             </div>
           </div>
@@ -367,11 +372,11 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
             disabled={runNow.isPending}
           >
             <Play className="size-3.5" />
-            Run now
+            {t("m.runNow")}
           </Button>
           <Button size="sm" variant="outline" onClick={() => setShowHistory((v) => !v)}>
             <History className="size-3.5" />
-            {showHistory ? "Hide history" : "History"}
+            {showHistory ? t("rt.hideHistory") : t("rt.history")}
           </Button>
           {confirmRemove ? (
             <>
@@ -381,16 +386,16 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
                 onClick={() => remove.mutate()}
                 disabled={remove.isPending}
               >
-                Really remove
+                {t("rt.reallyRemove")}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setConfirmRemove(false)}>
-                Keep
+                {t("rt.keep")}
               </Button>
             </>
           ) : (
             <Button size="sm" variant="ghost" onClick={() => setConfirmRemove(true)}>
               <Trash2 className="size-3.5" />
-              Remove
+              {t("m.remove")}
             </Button>
           )}
         </div>
@@ -398,9 +403,9 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
         {showHistory && (
           <div className="mt-4 rounded-lg border border-border">
             {runs.isLoading ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">Loading…</p>
+              <p className="px-4 py-3 text-sm text-muted-foreground">{t("rt.loading")}</p>
             ) : (runs.data ?? []).length === 0 ? (
-              <p className="px-4 py-3 text-sm text-muted-foreground">No runs yet.</p>
+              <p className="px-4 py-3 text-sm text-muted-foreground">{t("rt.noRuns")}</p>
             ) : (
               <ul className="divide-y divide-border">
                 {(runs.data ?? []).map((run) => (
@@ -414,7 +419,7 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
                       variant="outline"
                       className={statusStyles[run.status ?? ""] ?? "bg-muted text-muted-foreground"}
                     >
-                      {statusLabel(run.status)}
+                      {statusLabel(t, run.status)}
                     </Badge>
                     {run.approval_id && (
                       <Link to="/approvals" className="text-xs underline underline-offset-2">
@@ -435,6 +440,7 @@ function RoutineCard({ routine, agentLabel }: { routine: ApiRoutine; agentLabel:
 /* --------------------------------- page ---------------------------------- */
 
 function RoutinesPage() {
+  const t = useT();
   const routines = useQuery(routinesQuery());
   const agents = useQuery(agentsQuery());
   const [showForm, setShowForm] = useState(false);
@@ -445,10 +451,9 @@ function RoutinesPage() {
       <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Routines</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("nav.routines")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Scheduled runs that work while you don't. Risky steps wait in Approvals before they
-              execute; everything else runs on its own.
+              {t("rt.intro")}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -458,14 +463,14 @@ function RoutinesPage() {
             />
             <Button size="sm" onClick={() => setShowForm((v) => !v)}>
               <Plus className="size-4" />
-              New routine
+              {t("rt.new")}
             </Button>
           </div>
         </div>
 
         {DEMO_MODE && (
           <p className="mt-4 rounded-md border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-            Demo mode: routines run on your own machine — this preview shows the shape of the page.
+            {t("rt.demo")}
           </p>
         )}
 
@@ -477,9 +482,9 @@ function RoutinesPage() {
           <RowSkeleton />
         ) : (routines.data ?? []).length === 0 ? (
           <div className="mt-6 rounded-lg border border-dashed p-10 text-center">
-            <p className="text-sm font-medium">No routines yet.</p>
+            <p className="text-sm font-medium">{t("rt.none")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create one — e.g. a daily invoice scan from Gmail.
+              {t("rt.noneHint")}
             </p>
           </div>
         ) : (

@@ -61,6 +61,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { statusLabel, type Agent, type AgentStatus } from "@/lib/mock-data";
+import { useT, type MessageKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/demo/settings")({
   head: () => ({
@@ -83,60 +84,67 @@ export const Route = createFileRoute("/demo/settings")({
   component: SettingsPage,
 });
 
-const integrations = [
-  { name: "Xero", icon: BookOpen, connected: true, lastUsed: "4 min ago" },
-  { name: "Stripe", icon: CreditCard, connected: true, lastUsed: "22 min ago" },
-  { name: "Gmail", icon: Mail, connected: true, lastUsed: "6 min ago" },
-  { name: "Google Sheets", icon: Table2, connected: true, lastUsed: "1 h ago" },
-  { name: "Slack", icon: Slack, connected: false, lastUsed: "Never" },
-  { name: "Notion", icon: FileText, connected: true, lastUsed: "Yesterday" },
-  { name: "PDF reader", icon: FileText, connected: true, lastUsed: "Today" },
-  { name: "Browser profiles", icon: Chrome, connected: false, lastUsed: "Never" },
+const integrations: Array<{
+  name: string;
+  labelKey?: MessageKey;
+  icon: typeof BookOpen;
+  connected: boolean;
+  lastUsed: MessageKey;
+}> = [
+  { name: "Xero", icon: BookOpen, connected: true, lastUsed: "set.int.used4m" as MessageKey },
+  { name: "Stripe", icon: CreditCard, connected: true, lastUsed: "set.int.used22m" as MessageKey },
+  { name: "Gmail", icon: Mail, connected: true, lastUsed: "set.int.used6m" as MessageKey },
+  { name: "Google Sheets", icon: Table2, connected: true, lastUsed: "set.int.used1h" as MessageKey },
+  { name: "Slack", icon: Slack, connected: false, lastUsed: "set.int.never" as MessageKey },
+  { name: "Notion", icon: FileText, connected: true, lastUsed: "set.int.yesterday" as MessageKey },
+  { name: "PDF reader", labelKey: "set.int.pdfReader" as MessageKey, icon: FileText, connected: true, lastUsed: "header.today" as MessageKey },
+  { name: "Browser profiles", labelKey: "set.int.browserProfiles" as MessageKey, icon: Chrome, connected: false, lastUsed: "set.int.never" as MessageKey },
 ];
 
 const spend = [
-  { month: "Apr", amount: 38 },
-  { month: "May", amount: 52 },
-  { month: "Jun", amount: 47 },
-  { month: "Jul", amount: 71 },
-  { month: "Aug", amount: 86 },
-  { month: "Sep", amount: 64 },
+  { month: "set.month.apr" as MessageKey, amount: 38 },
+  { month: "set.month.may" as MessageKey, amount: 52 },
+  { month: "set.month.jun" as MessageKey, amount: 47 },
+  { month: "set.month.jul" as MessageKey, amount: 71 },
+  { month: "set.month.aug" as MessageKey, amount: 86 },
+  { month: "set.month.sep" as MessageKey, amount: 64 },
 ];
 
 const redactionOptions: Array<{
   id: string;
-  label: string;
-  detail: string;
+  label: MessageKey;
+  detail: MessageKey;
   defaultChecked: boolean;
 }> = [
   {
     id: "emails",
-    label: "Redact emails",
-    detail: "Mask email addresses in captured data.",
+    label: "set.red.emails",
+    detail: "set.red.emailsDetail",
     defaultChecked: false,
   },
   {
     id: "amounts",
-    label: "Redact financial amounts",
-    detail: "Hide balances, totals, and transaction values.",
+    label: "set.red.amounts",
+    detail: "set.red.amountsDetail",
     defaultChecked: false,
   },
   {
     id: "keys",
-    label: "Redact API keys",
-    detail: "Detect and remove credentials from logs.",
+    label: "set.red.keys",
+    detail: "set.red.keysDetail",
     defaultChecked: true,
   },
 ];
 
 function SettingsPage() {
+  const t = useT();
   if (!DEMO_MODE) return <LiveSettings />;
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("set.title")}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your team, connected services, safety, and local runtime.
+          {t("set.demo.intro")}
         </p>
       </div>
       <Tabs defaultValue="team" className="mt-6">
@@ -144,7 +152,7 @@ function SettingsPage() {
           <TabsList className="w-max min-w-full justify-start sm:min-w-0">
             {["team", "integrations", "security", "billing", "system"].map((tab) => (
               <TabsTrigger key={tab} value={tab} className="capitalize">
-                {tab}
+                {t(`set.tab.${tab}` as MessageKey)}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -170,6 +178,7 @@ function SettingsPage() {
 }
 
 function TeamSettings() {
+  const t = useT();
   const { agents, addAgent, removeAgent } = useStore();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<AgentStatus | "all">("all");
@@ -192,11 +201,11 @@ function TeamSettings() {
     addAgent({
       ...copy,
       id: `${agent.id}-copy-${Date.now()}`,
-      name: `${agent.name} Copy`,
+      name: t("set.team.copyName", { name: agent.name }),
       status: "idle",
       createdAt: "Today",
     });
-    toast.success(`${agent.name} duplicated`);
+    toast.success(t("set.team.duplicated", { name: agent.name }));
   };
 
   return (
@@ -207,30 +216,30 @@ function TeamSettings() {
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search agents"
-            aria-label="Search agents"
+            placeholder={t("set.team.search")}
+            aria-label={t("set.team.search")}
             className="pl-9"
           />
         </div>
         <Select value={status} onValueChange={(value) => setStatus(value as AgentStatus | "all")}>
-          <SelectTrigger className="w-full sm:w-44" aria-label="Filter agents by status">
+          <SelectTrigger className="w-full sm:w-44" aria-label={t("set.team.filterStatus")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {Object.entries(statusLabel).map(([value, label]) => (
+            <SelectItem value="all">{t("set.team.allStatuses")}</SelectItem>
+            {Object.keys(statusLabel).map((value) => (
               <SelectItem key={value} value={value}>
-                {label}
+                {t(`set.agentStatus.${value}` as MessageKey)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={role} onValueChange={setRole}>
-          <SelectTrigger className="w-full sm:w-52" aria-label="Filter agents by role">
+          <SelectTrigger className="w-full sm:w-52" aria-label={t("set.team.filterRole")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All roles</SelectItem>
+            <SelectItem value="all">{t("set.team.allRoles")}</SelectItem>
             {roles.map((item) => (
               <SelectItem key={item} value={item}>
                 {item}
@@ -240,20 +249,20 @@ function TeamSettings() {
         </Select>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus />
-          Create Agent
+          {t("set.team.create")}
         </Button>
       </div>
       <Card className="mt-4 overflow-hidden shadow-none">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="min-w-52">Agent</TableHead>
-              <TableHead className="min-w-48">Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="min-w-40">Model</TableHead>
-              <TableHead>Budget/day</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="min-w-52">{t("m.agent")}</TableHead>
+              <TableHead className="min-w-48">{t("set.col.role")}</TableHead>
+              <TableHead>{t("set.col.status")}</TableHead>
+              <TableHead className="min-w-40">{t("set.col.model")}</TableHead>
+              <TableHead>{t("set.col.budgetDay")}</TableHead>
+              <TableHead>{t("set.col.created")}</TableHead>
+              <TableHead className="text-right">{t("set.col.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -272,11 +281,11 @@ function TeamSettings() {
                 <TableCell className="font-mono text-xs">{agent.model}</TableCell>
                 <TableCell className="font-mono">${agent.dailyBudget}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {agent.createdAt ?? "Today"}
+                  {agent.createdAt ?? t("header.today")}
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" asChild aria-label={`Edit ${agent.name}`}>
+                    <Button variant="ghost" size="icon" asChild aria-label={t("set.team.edit", { name: agent.name })}>
                       <Link to="/demo/agents/$agentId" params={{ agentId: agent.id }}>
                         <Pencil />
                       </Link>
@@ -285,7 +294,7 @@ function TeamSettings() {
                       variant="ghost"
                       size="icon"
                       onClick={() => duplicate(agent)}
-                      aria-label={`Duplicate ${agent.name}`}
+                      aria-label={t("set.team.duplicate", { name: agent.name })}
                     >
                       <Copy />
                     </Button>
@@ -293,7 +302,7 @@ function TeamSettings() {
                       variant="ghost"
                       size="icon"
                       onClick={() => setArchiveAgent(agent)}
-                      aria-label={`Archive ${agent.name}`}
+                      aria-label={t("set.team.archive", { name: agent.name })}
                     >
                       <Archive />
                     </Button>
@@ -306,21 +315,21 @@ function TeamSettings() {
       </Card>
       {!visible.length && (
         <p className="py-12 text-center text-sm text-muted-foreground">
-          No agents match these filters.
+          {t("set.team.noMatch")}
         </p>
       )}
       <CreateAgentWizard open={createOpen} onOpenChange={setCreateOpen} />
       <TypedConfirmDialog
         open={Boolean(archiveAgent)}
         onOpenChange={(open) => !open && setArchiveAgent(null)}
-        title={`Archive ${archiveAgent?.name ?? "agent"}?`}
-        description="This removes the agent from your active team. Its historical audit data remains available."
+        title={t("set.team.archiveTitle", { name: archiveAgent?.name ?? t("set.team.agentFallback") })}
+        description={t("set.team.archiveDesc")}
         keyword="ARCHIVE"
-        action="Archive agent"
+        action={t("set.team.archiveAction")}
         onConfirm={() => {
           if (archiveAgent) {
             removeAgent(archiveAgent.id);
-            toast.success(`${archiveAgent.name} archived`);
+            toast.success(t("set.team.archived", { name: archiveAgent.name }));
             setArchiveAgent(null);
           }
         }}
@@ -330,48 +339,49 @@ function TeamSettings() {
 }
 
 function IntegrationsSettings() {
+  const t = useT();
   return (
     <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {integrations.map(({ name, icon: Icon, connected, lastUsed }) => (
+      {integrations.map(({ name, labelKey, icon: Icon, connected, lastUsed }) => (
         <Card key={name} className="shadow-none">
           <CardHeader className="flex-row items-start gap-3 space-y-0">
             <span className="grid size-10 place-items-center rounded-md bg-muted">
               <Icon className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <CardTitle className="text-sm">{name}</CardTitle>
+              <CardTitle className="text-sm">{labelKey ? t(labelKey) : name}</CardTitle>
               <Badge
                 variant="outline"
                 className={`mt-2 ${connected ? "border-success/30 bg-success/12 text-success" : "text-muted-foreground"}`}
               >
-                {connected ? "Connected" : "Not connected"}
+                {connected ? t("set.int.connected") : t("set.int.notConnected")}
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <p className="mb-4 text-xs text-muted-foreground">Last used: {lastUsed}</p>
+            <p className="mb-4 text-xs text-muted-foreground">{t("set.int.lastUsed", { when: t(lastUsed) })}</p>
             <Button
               variant="outline"
               size="sm"
               className="w-full"
-              onClick={() => toast.info(`${name} configuration opened`)}
+              onClick={() => toast.info(t("set.int.configOpened", { name: labelKey ? t(labelKey) : name }))}
             >
-              Configure
+              {t("set.int.configure")}
             </Button>
           </CardContent>
         </Card>
       ))}
       <button
         type="button"
-        onClick={() => toast.info("Integration catalog opened")}
+        onClick={() => toast.info(t("set.int.catalogOpened"))}
         className="grid min-h-48 place-items-center rounded-xl border border-dashed bg-card p-6 text-center transition-colors hover:bg-accent"
       >
         <span>
           <span className="mx-auto grid size-10 place-items-center rounded-full bg-muted">
             <Plus className="size-5" />
           </span>
-          <span className="mt-3 block text-sm font-medium">Add integration</span>
-          <span className="mt-1 block text-xs text-muted-foreground">Connect another service</span>
+          <span className="mt-3 block text-sm font-medium">{t("set.int.add")}</span>
+          <span className="mt-1 block text-xs text-muted-foreground">{t("set.int.addHint")}</span>
         </span>
       </button>
     </div>
@@ -379,6 +389,7 @@ function IntegrationsSettings() {
 }
 
 function SecuritySettings() {
+  const t = useT();
   const { agents, daemonRunning, setDaemonRunning, setKillSwitchOpen, logSystemEvent } = useStore();
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -402,10 +413,10 @@ function SecuritySettings() {
             },
           ]);
           downloadBlob(zip, `eeze-agents-export-${Date.now()}.zip`);
-          toast.success("Export ready — eeze-agents-export.zip downloaded");
+          toast.success(t("set.sec.exportReady"));
           logSystemEvent({
-            label: "Workspace data exported",
-            detail: "Full export archive downloaded.",
+            label: t("set.ev.exported"),
+            detail: t("set.ev.exportedDetail"),
             severity: "info",
           });
           window.setTimeout(() => {
@@ -429,24 +440,24 @@ function SecuritySettings() {
             <div className="flex-1">
               <CardTitle className="flex items-center gap-2">
                 <AlertTriangle className="size-4 text-destructive" />
-                Emergency kill switch
+                {t("set.sec.killTitle")}
               </CardTitle>
               <CardDescription>
-                Immediately terminate every agent and stop the cua-driver daemon.
+                {t("set.sec.killDesc")}
               </CardDescription>
             </div>
             <Button variant="destructive" onClick={() => setKillSwitchOpen(true)}>
               <OctagonX />
-              Stop all agents
+              {t("set.sec.stopAll")}
             </Button>
           </CardHeader>
           <CardContent className="flex items-center gap-4 border-t pt-5">
             <div className="min-w-0 flex-1">
-              <Label htmlFor="kill-switch-armed">Agents armed</Label>
+              <Label htmlFor="kill-switch-armed">{t("set.sec.armed")}</Label>
               <p className="mt-1 text-sm text-muted-foreground">
                 {daemonRunning
-                  ? "Agents may execute actions. Disabling requires typing STOP."
-                  : "Kill switch active — all execution is halted."}
+                  ? t("set.sec.armedOn")
+                  : t("set.sec.armedOff")}
               </p>
             </div>
             <Switch
@@ -459,25 +470,25 @@ function SecuritySettings() {
                 }
                 setDaemonRunning(true);
                 logSystemEvent({
-                  label: "Agents re-armed",
-                  detail: "Kill switch released; daemon restarted.",
+                  label: t("set.sec.rearmed"),
+                  detail: t("set.ev.rearmedDetail"),
                   severity: "info",
                 });
-                toast.success("Agents re-armed");
+                toast.success(t("set.sec.rearmed"));
               }}
             />
           </CardContent>
         </Card>
         <Card className="shadow-none">
           <CardHeader>
-            <CardTitle>Data redaction</CardTitle>
+            <CardTitle>{t("set.sec.redaction")}</CardTitle>
             <CardDescription>
-              Remove sensitive values from screenshots and audit logs.
+              {t("set.sec.redactionDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="divide-y">
             {redactionOptions.map((option) => (
-              <ToggleRow key={option.id} {...option} />
+              <ToggleRow key={option.id} {...option} label={t(option.label)} detail={t(option.detail)} />
             ))}
           </CardContent>
         </Card>
@@ -485,41 +496,41 @@ function SecuritySettings() {
       <div className="space-y-5">
         <Card className="shadow-none">
           <CardHeader>
-            <CardTitle>Audit log retention</CardTitle>
+            <CardTitle>{t("set.sec.retention")}</CardTitle>
             <CardDescription>
-              Choose how long run details and screenshots are retained.
+              {t("set.sec.retentionDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Label htmlFor="retention">Retention period</Label>
+            <Label htmlFor="retention">{t("set.sec.retentionPeriod")}</Label>
             <Select defaultValue="90">
               <SelectTrigger id="retention" className="mt-2 w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="30">30 days</SelectItem>
-                <SelectItem value="90">90 days</SelectItem>
-                <SelectItem value="365">1 year</SelectItem>
-                <SelectItem value="forever">Forever</SelectItem>
+                <SelectItem value="30">{t("set.sec.days", { n: 30 })}</SelectItem>
+                <SelectItem value="90">{t("set.sec.days", { n: 90 })}</SelectItem>
+                <SelectItem value="365">{t("set.sec.oneYear")}</SelectItem>
+                <SelectItem value="forever">{t("set.sec.forever")}</SelectItem>
               </SelectContent>
             </Select>
           </CardContent>
         </Card>
         <Card className="shadow-none">
           <CardHeader>
-            <CardTitle>Data controls</CardTitle>
-            <CardDescription>Export or permanently remove workspace data.</CardDescription>
+            <CardTitle>{t("set.sec.dataControls")}</CardTitle>
+            <CardDescription>{t("set.sec.dataControlsDesc")}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
             <Button variant="outline" disabled={exporting} onClick={exportAll}>
               <Braces />
-              {exporting ? "Preparing export…" : "Export all data"}
+              {exporting ? t("set.sec.preparing") : t("set.sec.exportAll")}
             </Button>
             {exporting && (
               <div>
                 <Progress value={exportProgress} className="mt-1" />
                 <p className="mt-2 font-mono text-xs text-muted-foreground">
-                  {exportProgress}% · building .zip archive
+                  {t("set.sec.building", { n: exportProgress })}
                 </p>
               </div>
             )}
@@ -529,7 +540,7 @@ function SecuritySettings() {
               onClick={() => setDeleteDialog(true)}
             >
               <AlertTriangle />
-              Delete all data
+              {t("set.sec.deleteAll")}
             </Button>
           </CardContent>
         </Card>
@@ -537,16 +548,16 @@ function SecuritySettings() {
       <TypedConfirmDialog
         open={deleteDialog}
         onOpenChange={setDeleteDialog}
-        title="Delete all workspace data?"
-        description="This irreversible action removes agents, memories, run history, and audit logs."
+        title={t("set.sec.deleteTitle")}
+        description={t("set.sec.deleteDesc")}
         keyword="DELETE"
-        action="Delete all data"
+        action={t("set.sec.deleteAll")}
         onConfirm={() => {
           setDeleteDialog(false);
-          toast.success("Deletion request recorded");
+          toast.success(t("set.sec.deleteRecorded"));
           logSystemEvent({
-            label: "Workspace deletion requested",
-            detail: "All workspace data scheduled for removal.",
+            label: t("set.ev.deleteRequested"),
+            detail: t("set.ev.deleteDetail"),
             severity: "critical",
           });
         }}
@@ -556,6 +567,7 @@ function SecuritySettings() {
 }
 
 function BillingSettings() {
+  const t = useT();
   const { agents } = useStore();
   return (
     <div className="mt-5 space-y-5">
@@ -564,29 +576,29 @@ function BillingSettings() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardDescription>Current plan</CardDescription>
+                <CardDescription>{t("set.bill.currentPlan")}</CardDescription>
                 <CardTitle className="mt-1 text-2xl">Pro</CardTitle>
               </div>
-              <Badge>Active</Badge>
+              <Badge>{t("set.bill.active")}</Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="flex justify-between text-sm">
-              <span>6,420 of 10,000 tasks</span>
+              <span>{t("set.bill.tasksUsed")}</span>
               <span className="font-mono">64%</span>
             </div>
             <Progress value={64} className="mt-3" />
-            <p className="mt-3 text-xs text-muted-foreground">Resets October 1, 2026</p>
-            <Button className="mt-5 w-full" onClick={() => toast.info("Plan options opened")}>
+            <p className="mt-3 text-xs text-muted-foreground">{t("set.bill.resets")}</p>
+            <Button className="mt-5 w-full" onClick={() => toast.info(t("set.bill.planOpened"))}>
               <Sparkles />
-              Upgrade plan
+              {t("set.bill.upgrade")}
             </Button>
           </CardContent>
         </Card>
         <Card className="shadow-none">
           <CardHeader>
-            <CardTitle>Monthly spend</CardTitle>
-            <CardDescription>Agent costs over the last six months.</CardDescription>
+            <CardTitle>{t("set.bill.monthly")}</CardTitle>
+            <CardDescription>{t("set.bill.monthlyDesc")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex h-48 items-end gap-3 border-b pb-2">
@@ -602,7 +614,7 @@ function BillingSettings() {
                     className="min-h-1 rounded-t-sm bg-info"
                     style={{ height: `${item.amount}%` }}
                   />
-                  <span className="text-xs text-muted-foreground">{item.month}</span>
+                  <span className="text-xs text-muted-foreground">{t(item.month)}</span>
                 </div>
               ))}
             </div>
@@ -611,16 +623,16 @@ function BillingSettings() {
       </div>
       <Card className="shadow-none">
         <CardHeader>
-          <CardTitle>Usage by agent</CardTitle>
+          <CardTitle>{t("set.bill.usage")}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Agent</TableHead>
-                <TableHead>Tasks this month</TableHead>
-                <TableHead>Cost</TableHead>
-                <TableHead className="min-w-40">Budget used</TableHead>
+                <TableHead>{t("m.agent")}</TableHead>
+                <TableHead>{t("set.bill.tasksMonth")}</TableHead>
+                <TableHead>{t("set.bill.cost")}</TableHead>
+                <TableHead className="min-w-40">{t("set.bill.budgetUsed")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -654,12 +666,12 @@ function BillingSettings() {
       <Card className="shadow-none">
         <CardHeader className="sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle>Payment method</CardTitle>
-            <CardDescription className="mt-1">Visa ending in 4242 · expires 09/28</CardDescription>
+            <CardTitle>{t("set.bill.payment")}</CardTitle>
+            <CardDescription className="mt-1">{t("set.bill.card")}</CardDescription>
           </div>
-          <Button variant="outline" onClick={() => toast.info("Payment method editor opened")}>
+          <Button variant="outline" onClick={() => toast.info(t("set.bill.paymentOpened"))}>
             <WalletCards />
-            Update payment method
+            {t("set.bill.updatePayment")}
           </Button>
         </CardHeader>
       </Card>
@@ -668,6 +680,7 @@ function BillingSettings() {
 }
 
 function SystemSettings() {
+  const t = useT();
   const { agents, daemonRunning, setDaemonRunning, systemEvents, logSystemEvent } = useStore();
   const statusResult = useQuery(systemStatusQuery());
   const live = statusResult.data;
@@ -683,31 +696,31 @@ function SystemSettings() {
   const jevObject = typeof jevRaw === "object" && jevRaw !== null ? jevRaw : null;
   const jevVersion = jevObject?.model ?? (typeof jevRaw === "string" ? jevRaw : "v2.7.1");
   const jevStatus = jevObject
-    ? `${jevObject.calls ?? 0} calls · $${(jevObject.cost_usd ?? 0).toFixed(3)}`
-    : (live?.jev_status ?? "API online");
+    ? t("set.sys.jevCalls", { n: jevObject.calls ?? 0, cost: (jevObject.cost_usd ?? 0).toFixed(3) })
+    : (live?.jev_status ?? t("set.sys.apiOnline"));
   const agentsCount = live?.agents?.length ?? live?.agents_count ?? agents.length;
   const driverDetail = daemonObject?.pid
-    ? `PID ${daemonObject.pid} · ${daemonObject.permission_mode ?? "standard"}`
+    ? `PID ${daemonObject.pid} · ${daemonObject.permission_mode ?? t("set.sys.standard")}`
     : (live?.version ?? "v0.18.4");
   const services: Array<[string, string, string, boolean]> = [
-    ["cua-driver", driverDetail, daemonOk ? "Running" : "Stopped", daemonOk],
+    ["cua-driver", driverDetail, daemonOk ? t("set.sys.running") : t("set.sys.stopped"), daemonOk],
     ["Jev", jevVersion, jevStatus, true],
-    ["Daemon", daemonOk ? "Healthy" : "Terminated", daemonOk ? "Running" : "Stopped", daemonOk],
+    ["Daemon", daemonOk ? t("set.sys.healthy") : t("set.sys.terminated"), daemonOk ? t("set.sys.running") : t("set.sys.stopped"), daemonOk],
     [
-      "Agents",
-      `${agentsCount} registered · ${live?.runs_total ?? 0} runs`,
-      statusResult.isError ? "Offline data" : "Live",
+      t("set.sys.agents"),
+      t("set.sys.agentsDetail", { n: agentsCount, runs: live?.runs_total ?? 0 }),
+      statusResult.isError ? t("set.sys.offline") : t("set.sys.live"),
       !statusResult.isError,
     ],
   ];
   const restart = (name: string) => {
     setDaemonRunning(true);
     logSystemEvent({
-      label: `${name} restarted`,
-      detail: `${name} process restarted from Settings.`,
+      label: t("set.ev.restarted", { name }),
+      detail: t("set.ev.restartedDetail", { name }),
       severity: "info",
     });
-    toast.success(`${name} restart requested`);
+    toast.success(t("set.sys.restartRequested", { name }));
   };
   return (
     <div className="mt-5 grid gap-5 lg:grid-cols-2">
@@ -715,9 +728,9 @@ function SystemSettings() {
         <CardHeader>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <CardTitle>Runtime health</CardTitle>
+              <CardTitle>{t("set.sys.health")}</CardTitle>
               <CardDescription>
-                Local services that power background automation. Polled every 10s.
+                {t("set.sys.healthDesc")}
               </CardDescription>
             </div>
             <RefreshButton
@@ -755,22 +768,22 @@ function SystemSettings() {
       </Card>
       <Card className="shadow-none">
         <CardHeader>
-          <CardTitle>Controls</CardTitle>
-          <CardDescription>Restart local processes or increase diagnostic detail.</CardDescription>
+          <CardTitle>{t("set.sys.controls")}</CardTitle>
+          <CardDescription>{t("set.sys.controlsDesc")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-2 sm:grid-cols-2">
             <Button variant="outline" onClick={() => restart("Driver")}>
               <RefreshCw />
-              Restart driver
+              {t("set.sys.restartDriver")}
             </Button>
             <Button variant="outline" onClick={() => restart("Daemon")}>
               <RefreshCw />
-              Restart daemon
+              {t("set.sys.restartDaemon")}
             </Button>
           </div>
           <div>
-            <Label htmlFor="log-level">Log level</Label>
+            <Label htmlFor="log-level">{t("set.sys.logLevel")}</Label>
             <Select defaultValue="info">
               <SelectTrigger id="log-level" className="mt-2 w-full">
                 <SelectValue />
@@ -785,19 +798,19 @@ function SystemSettings() {
           <div className="rounded-md border bg-muted/40 p-4">
             <div className="flex items-center gap-2 text-sm font-medium">
               <KeyRound className="size-4" />
-              Local API
+              {t("set.sys.localApi")}
             </div>
             <p className="mt-2 font-mono text-xs text-muted-foreground">
-              {API_URL} · {statusResult.isError ? "unreachable" : "connected"}
+              {API_URL} · {statusResult.isError ? t("set.sys.unreachable") : t("set.sys.connected")}
             </p>
           </div>
         </CardContent>
       </Card>
       <Card className="shadow-none lg:col-span-2">
         <CardHeader>
-          <CardTitle>System event log</CardTitle>
+          <CardTitle>{t("set.sys.eventLog")}</CardTitle>
           <CardDescription>
-            Emergency stops, restarts, and data actions recorded this session.
+            {t("set.sys.eventLogDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -824,7 +837,7 @@ function SystemSettings() {
             </ul>
           ) : (
             <p className="py-6 text-center text-sm text-muted-foreground">
-              No system events recorded yet.
+              {t("set.sys.noEvents")}
             </p>
           )}
         </CardContent>
@@ -856,6 +869,7 @@ function ToggleRow({
 }
 
 function LiveSettings() {
+  const t = useT();
   const queryClient = useQueryClient();
   const info = useQuery(systemInfoQuery());
   const status = useQuery(systemStatusQuery());
@@ -863,7 +877,7 @@ function LiveSettings() {
   const notify = useMutation({
     mutationFn: (enabled: boolean) => api.setNotify(enabled),
     onSuccess: async (result) => {
-      toast.success(result.enabled ? "Approval alerts on." : "Approval alerts off.");
+      toast.success(result.enabled ? t("set.live.approvalOn") : t("set.live.approvalOff"));
       await queryClient.invalidateQueries({ queryKey: ["system-status"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -871,24 +885,24 @@ function LiveSettings() {
   const notifyRoutines = useMutation({
     mutationFn: (enabled: boolean) => api.setNotifyRoutines(enabled),
     onSuccess: async (result) => {
-      toast.success(result.enabled ? "Routine failure alerts on." : "Routine failure alerts off.");
+      toast.success(result.enabled ? t("set.live.routineOn") : t("set.live.routineOff"));
       await queryClient.invalidateQueries({ queryKey: ["system-status"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const daemon = typeof info.data?.daemon === "object" ? info.data?.daemon : undefined;
-  const keys: [string, string][] = [
-    ["typesafe", "Typesafe — Jev judgment brain"],
-    ["extract", "Invoice extraction"],
-    ["imap", "Mailbox app password"],
+  const keys: [string, MessageKey][] = [
+    ["typesafe", "set.key.typesafe"],
+    ["extract", "set.key.extract"],
+    ["imap", "set.key.imap"],
   ];
-  const paths: [string, string | undefined][] = [
-    ["Agent store", info.data?.store_path],
-    ["Local write token", info.data?.token_path],
-    ["User agents", info.data?.user_agents_path],
-    ["Repo agents", info.data?.repo_agents_path],
-    ["Artifacts", info.data?.artifacts_path],
+  const paths: [MessageKey, string | undefined][] = [
+    ["set.path.store", info.data?.store_path],
+    ["set.path.token", info.data?.token_path],
+    ["set.path.userAgents", info.data?.user_agents_path],
+    ["set.path.repoAgents", info.data?.repo_agents_path],
+    ["set.path.artifacts", info.data?.artifacts_path],
   ];
 
   if (info.isError)
@@ -900,38 +914,38 @@ function LiveSettings() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
-      <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("set.title")}</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Local runtime, mailbox and keys. Everything stays on this machine.
+        {t("set.live.intro")}
       </p>
 
       <Card className="mt-6">
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-base font-semibold">Approval notifications</h2>
+              <h2 className="text-base font-semibold">{t("set.live.approvalTitle")}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                A Windows alert when a run pauses for approval — without stealing focus.
+                {t("set.live.approvalDesc")}
               </p>
             </div>
             <Switch
               checked={status.data?.notifications_enabled ?? true}
               disabled={!status.data || notify.isPending}
-              aria-label="Desktop alerts for approvals"
+              aria-label={t("set.live.approvalAria")}
               onCheckedChange={(checked) => notify.mutate(checked)}
             />
           </div>
           <div className="mt-5 flex items-start justify-between gap-4 border-t pt-5">
             <div>
-              <h2 className="text-base font-semibold">Routine failure notifications</h2>
+              <h2 className="text-base font-semibold">{t("set.live.routineTitle")}</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Alert on new routine failures only. Off by default; past failures are not replayed.
+                {t("set.live.routineDesc")}
               </p>
             </div>
             <Switch
               checked={status.data?.routine_failure_notifications_enabled ?? false}
               disabled={!status.data || notifyRoutines.isPending}
-              aria-label="Desktop alerts for routine failures"
+              aria-label={t("set.live.routineAria")}
               onCheckedChange={(checked) => notifyRoutines.mutate(checked)}
             />
           </div>
@@ -940,22 +954,22 @@ function LiveSettings() {
 
       <Card className="mt-4">
         <CardHeader>
-          <h2 className="text-base font-semibold">Runtime</h2>
+          <h2 className="text-base font-semibold">{t("set.live.runtime")}</h2>
         </CardHeader>
         <CardContent>
           <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             <div>
-              <dt className="text-xs uppercase text-muted-foreground">Control plane</dt>
-              <dd className="mt-1">running · pid {info.data?.api_pid ?? "?"}</dd>
+              <dt className="text-xs uppercase text-muted-foreground">{t("set.live.controlPlane")}</dt>
+              <dd className="mt-1">{t("set.live.runningPid", { pid: info.data?.api_pid ?? "?" })}</dd>
             </div>
             <div>
-              <dt className="text-xs uppercase text-muted-foreground">Hands (cua-driver)</dt>
+              <dt className="text-xs uppercase text-muted-foreground">{t("set.live.hands")}</dt>
               <dd className="mt-1">
-                {daemon?.running ? `running · pid ${daemon.pid ?? "?"}` : "stopped"}
+                {daemon?.running ? t("set.live.runningPid", { pid: daemon.pid ?? "?" }) : t("set.live.stopped")}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase text-muted-foreground">Version</dt>
+              <dt className="text-xs uppercase text-muted-foreground">{t("set.live.version")}</dt>
               <dd className="mt-1">{info.data?.version ?? "—"}</dd>
             </div>
             <div>
@@ -963,7 +977,7 @@ function LiveSettings() {
               <dd className="mt-1">{info.data?.python ?? "—"}</dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-xs uppercase text-muted-foreground">Runsets · backups</dt>
+              <dt className="text-xs uppercase text-muted-foreground">{t("set.live.runsets")}</dt>
               <dd className="mt-1">
                 {info.data?.runsets ?? 0} · {info.data?.backups ?? 0}
               </dd>
@@ -977,22 +991,21 @@ function LiveSettings() {
       <Card className="mt-4">
         <CardHeader>
           <div className="flex items-center justify-between gap-4">
-            <h2 className="text-base font-semibold">Mailbox</h2>
+            <h2 className="text-base font-semibold">{t("set.live.mailbox")}</h2>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/setup">Open setup wizard</Link>
+              <Link to="/setup">{t("set.live.openSetup")}</Link>
             </Button>
           </div>
         </CardHeader>
         <CardContent className="text-sm">
           {setup.data?.imap_configured ? (
             <p>
-              Connected as <span className="font-medium">{setup.data.imap_user}</span>
-              {setup.data.imap_host ? ` (${setup.data.imap_host})` : ""} — read-only, pulls on
-              demand.
+              {t("set.live.connectedAs")} <span className="font-medium">{setup.data.imap_user}</span>
+              {setup.data.imap_host ? ` (${setup.data.imap_host})` : ""} — {t("set.live.readOnly")}
             </p>
           ) : (
             <p className="text-muted-foreground">
-              No mailbox configured yet — connect one in the setup wizard.
+              {t("set.live.noMailbox")}
             </p>
           )}
         </CardContent>
@@ -1000,23 +1013,22 @@ function LiveSettings() {
 
       <Card className="mt-4">
         <CardHeader>
-          <h2 className="text-base font-semibold">Other keys</h2>
+          <h2 className="text-base font-semibold">{t("set.live.otherKeys")}</h2>
           <CardDescription>
-            Presence only — values live in the repo .env and never reach this page. Model provider
-            keys are above.
+            {t("set.live.otherKeysDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="divide-y rounded-md border p-0">
           {keys.map(([id, label]) => (
             <div key={id} className="flex items-center justify-between px-4 py-3 text-sm">
-              <span>{label}</span>
+              <span>{t(label)}</span>
               {info.data?.keys?.[id] ? (
                 <Badge variant="secondary" className="font-normal">
-                  Configured
+                  {t("set.live.configured")}
                 </Badge>
               ) : (
                 <Badge variant="outline" className="font-normal text-muted-foreground">
-                  Not set
+                  {t("set.live.notSet")}
                 </Badge>
               )}
             </div>
@@ -1026,16 +1038,15 @@ function LiveSettings() {
 
       <Card className="mt-4">
         <CardHeader>
-          <h2 className="text-base font-semibold">Paths &amp; data</h2>
+          <h2 className="text-base font-semibold">{t("set.live.paths")}</h2>
           <CardDescription>
-            Audit trail lives in the store; runs and screenshots under artifacts; backups (including
-            the .env) are git-ignored and never leave the machine.
+            {t("set.live.pathsDesc")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           {paths.map(([label, value]) => (
             <div key={label} className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:gap-3">
-              <span className="w-40 shrink-0 text-xs uppercase text-muted-foreground">{label}</span>
+              <span className="w-40 shrink-0 text-xs uppercase text-muted-foreground">{t(label)}</span>
               <code className="break-all font-mono text-xs">{value ?? "—"}</code>
             </div>
           ))}

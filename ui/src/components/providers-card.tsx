@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, DEMO_MODE, type ApiProbeResult, type ApiProvider } from "@/lib/api";
 import { providersQuery } from "@/lib/queries";
+import { useT, type MessageKey, type Translate } from "@/lib/i18n";
 
 /**
  * Settings → Providers & models (P3).
@@ -19,29 +20,33 @@ import { providersQuery } from "@/lib/queries";
  * "Test connection" shows the REAL result of a real call — including the failure, with the reason.
  */
 
-const KIND_LABEL: Record<ApiProvider["kind"], string> = {
-  api_key: "API key",
-  oauth_external: "Local subscription",
-  local: "Local server",
+const KIND_LABEL: Record<ApiProvider["kind"], MessageKey> = {
+  api_key: "prov.kindApiKey",
+  oauth_external: "prov.kindSubscription",
+  local: "prov.kindLocal",
 };
 
-function statusOf(provider: ApiProvider): { text: string; variant: "secondary" | "outline" } {
+function statusOf(
+  provider: ApiProvider,
+  t: Translate,
+): { text: string; variant: "secondary" | "outline" } {
   if (provider.configured === true)
     return {
-      text: provider.kind === "oauth_external" ? "Signed in" : "Configured",
+      text: provider.kind === "oauth_external" ? t("prov.signedIn") : t("prov.configured"),
       variant: "secondary",
     };
-  if (provider.configured === null) return { text: "Check it", variant: "outline" };
-  return { text: "Not set", variant: "outline" };
+  if (provider.configured === null) return { text: t("prov.checkIt"), variant: "outline" };
+  return { text: t("prov.notSet"), variant: "outline" };
 }
 
-function whereFrom(provider: ApiProvider): string {
-  if (provider.kind === "oauth_external") return provider.configured_detail || "local session";
+function whereFrom(provider: ApiProvider, t: Translate): string {
+  if (provider.kind === "oauth_external")
+    return provider.configured_detail || t("prov.localSession");
   if (provider.key_source === "store")
-    return `stored on this machine${provider.key_last4 ? ` ···${provider.key_last4}` : ""}`;
-  if (provider.key_source === "env") return "from the .env file";
-  if (provider.kind === "local") return "no key needed";
-  return "no key yet";
+    return `${t("prov.stored")}${provider.key_last4 ? ` ···${provider.key_last4}` : ""}`;
+  if (provider.key_source === "env") return t("prov.fromEnv");
+  if (provider.kind === "local") return t("prov.noKeyNeeded");
+  return t("prov.noKeyYet");
 }
 
 function latency(ms: number | null): string {
@@ -49,18 +54,19 @@ function latency(ms: number | null): string {
   return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
 }
 
-const modelNames = (provider: ApiProvider) => {
+const modelNames = (provider: ApiProvider, t: Translate) => {
   const routine = provider.models?.routine || "";
   const hard = provider.models?.hard || "";
   if (!routine && !hard) return "";
   if (routine === hard) return routine;
   const parts: string[] = [];
-  if (routine) parts.push(`routine ${routine}`);
-  if (hard) parts.push(`hard ${hard}`);
+  if (routine) parts.push(t("prov.routineModelShort", { model: routine }));
+  if (hard) parts.push(t("prov.hardModelShort", { model: hard }));
   return parts.join(" · ");
 };
 
 export function ProvidersCard() {
+  const t = useT();
   const queryClient = useQueryClient();
   const providers = useQuery(providersQuery());
   const [openKeyFor, setOpenKeyFor] = useState<string | null>(null);
@@ -87,7 +93,7 @@ export function ProvidersCard() {
   const saveKey = useMutation({
     mutationFn: (input: { id: string; key: string }) => api.setProviderKey(input.id, input.key),
     onSuccess: async (result) => {
-      toast.success(`Key saved · it ends in ${result.key_last4}`);
+      toast.success(t("prov.keySaved", { last4: result.key_last4 }));
       setOpenKeyFor(null);
       setKeyDraft("");
       await refresh();
@@ -98,7 +104,7 @@ export function ProvidersCard() {
   const removeKey = useMutation({
     mutationFn: (id: string) => api.removeProviderKey(id),
     onSuccess: async () => {
-      toast.success("Key removed from this machine.");
+      toast.success(t("prov.keyRemoved"));
       await refresh();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -107,7 +113,7 @@ export function ProvidersCard() {
   const makeDefault = useMutation({
     mutationFn: (id: string) => api.updateProvider(id, { set_default: true }),
     onSuccess: async (_row, id) => {
-      toast.success(`${id} is now the provider agents use.`);
+      toast.success(t("prov.nowDefault", { id }));
       await refresh();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -119,7 +125,7 @@ export function ProvidersCard() {
         default_models: { routine: input.routine, hard: input.hard },
       }),
     onSuccess: async () => {
-      toast.success("Models updated.");
+      toast.success(t("prov.modelsUpdated"));
       await refresh();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -150,34 +156,29 @@ export function ProvidersCard() {
   return (
     <Card className="mt-4">
       <CardHeader>
-        <h2 className="text-base font-semibold">Providers &amp; models</h2>
-        <CardDescription>
-          Bring your own key. It is stored on this machine, used for runs, and never shown again —
-          not even here.
-        </CardDescription>
+        <h2 className="text-base font-semibold">{t("prov.title")}</h2>
+        <CardDescription>{t("prov.intro")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {providers.isPending && <p className="text-sm text-muted-foreground">Reading providers…</p>}
+        {providers.isPending && (
+          <p className="text-sm text-muted-foreground">{t("prov.reading")}</p>
+        )}
         {providers.isError && (
           <div className="flex items-center justify-between gap-4 rounded-md border p-3 text-sm">
-            <span className="text-muted-foreground">
-              Could not read the provider list from the local control plane.
-            </span>
+            <span className="text-muted-foreground">{t("prov.loadError")}</span>
             <Button variant="outline" size="sm" onClick={() => void providers.refetch()}>
-              Retry
+              {t("prov.retry")}
             </Button>
           </div>
         )}
         {!providers.isPending && !providers.isError && rows.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No providers available in this build — nothing to configure.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("prov.none")}</p>
         )}
 
         {rows.map((provider) => {
-          const status = statusOf(provider);
+          const status = statusOf(provider, t);
           const probe = probes[provider.id];
-          const models = modelNames(provider);
+          const models = modelNames(provider, t);
           const canHoldKey = provider.kind === "api_key" && provider.compatible;
           return (
             <div key={provider.id} className="rounded-md border">
@@ -186,24 +187,24 @@ export function ProvidersCard() {
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{provider.label}</span>
                     <Badge variant="outline" className="font-normal text-muted-foreground">
-                      {KIND_LABEL[provider.kind]}
+                      {t(KIND_LABEL[provider.kind])}
                     </Badge>
                     <Badge variant={status.variant} className="font-normal">
                       {status.text}
                     </Badge>
                     {provider.role === "engine" && (
                       <Badge variant="secondary" className="font-normal">
-                        Running now
+                        {t("prov.runningNow")}
                       </Badge>
                     )}
                     {provider.role === "model" && (
                       <Badge variant="secondary" className="font-normal">
-                        Model provider
+                        {t("prov.modelProvider")}
                       </Badge>
                     )}
                   </div>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {whereFrom(provider)}
+                    {whereFrom(provider, t)}
                     {models ? ` — ${models}` : ""}
                   </p>
                   {provider.note && (
@@ -221,7 +222,7 @@ export function ProvidersCard() {
                         setKeyDraft("");
                       }}
                     >
-                      {provider.key_in_store ? "Replace key" : "Paste key"}
+                      {provider.key_in_store ? t("prov.replaceKey") : t("prov.pasteKey")}
                     </Button>
                   )}
                   {provider.key_in_store && (
@@ -231,7 +232,7 @@ export function ProvidersCard() {
                       disabled={removeKey.isPending}
                       onClick={() => removeKey.mutate(provider.id)}
                     >
-                      Remove
+                      {t("m.remove")}
                     </Button>
                   )}
                   {provider.compatible && (
@@ -243,11 +244,11 @@ export function ProvidersCard() {
                     >
                       {probe === "pending" ? (
                         <>
-                          <Loader2 className="mr-1.5 size-3.5 animate-spin" /> Testing
+                          <Loader2 className="mr-1.5 size-3.5 animate-spin" /> {t("prov.testing")}
                         </>
                       ) : (
                         <>
-                          <PlugZap className="mr-1.5 size-3.5" /> Test connection
+                          <PlugZap className="mr-1.5 size-3.5" /> {t("prov.testConn")}
                         </>
                       )}
                     </Button>
@@ -259,7 +260,7 @@ export function ProvidersCard() {
                       disabled={makeDefault.isPending}
                       onClick={() => makeDefault.mutate(provider.id)}
                     >
-                      Use this one
+                      {t("prov.useThis")}
                     </Button>
                   )}
                 </div>
@@ -271,7 +272,7 @@ export function ProvidersCard() {
                     htmlFor={`key-${provider.id}`}
                     className="text-xs uppercase text-muted-foreground"
                   >
-                    {provider.label} API key
+                    {t("prov.keyLabel", { provider: provider.label })}
                   </Label>
                   <div className="mt-1.5 flex gap-2">
                     <Input
@@ -279,7 +280,7 @@ export function ProvidersCard() {
                       type="password"
                       autoComplete="off"
                       spellCheck={false}
-                      placeholder="paste the key, then Save"
+                      placeholder={t("prov.keyPlaceholder")}
                       value={keyDraft}
                       onChange={(event) => setKeyDraft(event.target.value)}
                       onKeyDown={(event) => {
@@ -292,13 +293,10 @@ export function ProvidersCard() {
                       disabled={!keyDraft.trim() || saveKey.isPending}
                       onClick={() => saveKey.mutate({ id: provider.id, key: keyDraft.trim() })}
                     >
-                      Save
+                      {t("m.save")}
                     </Button>
                   </div>
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    Saved to this machine only. No screen ever reads it back — after saving you will
-                    see just its last 4 characters.
-                  </p>
+                  <p className="mt-1.5 text-xs text-muted-foreground">{t("prov.keyHint")}</p>
                 </div>
               )}
 
@@ -307,16 +305,21 @@ export function ProvidersCard() {
                   {probe.ok ? (
                     <span className="flex items-center gap-1.5">
                       <CheckCircle2 className="size-3.5 text-emerald-600" />
-                      Answered{probe.latency_ms !== null ? ` in ${latency(probe.latency_ms)}` : ""}
+                      {probe.latency_ms !== null
+                        ? t("prov.answeredIn", { time: latency(probe.latency_ms) })
+                        : t("prov.answered")}
                       {probe.model_echo ? ` · ${probe.model_echo}` : ""}
-                      {probe.tokens ? ` · ${probe.tokens.toLocaleString()} tokens` : ""}
+                      {probe.tokens
+                        ? ` · ${t("prov.tokens", { n: probe.tokens.toLocaleString() })}`
+                        : ""}
                     </span>
                   ) : (
                     <span className="flex items-center gap-1.5">
                       <XCircle className="size-3.5 text-destructive" />
                       <span className="text-muted-foreground">
-                        Failed{probe.status_code ? ` (HTTP ${probe.status_code})` : ""} —{" "}
-                        {probe.detail || "no detail reported"}
+                        {t("prov.failed")}
+                        {probe.status_code ? ` (HTTP ${probe.status_code})` : ""} —{" "}
+                        {probe.detail || t("prov.noDetail")}
                       </span>
                     </span>
                   )}
@@ -331,7 +334,7 @@ export function ProvidersCard() {
                   <ChevronDown
                     className={`size-3.5 transition-transform ${advancedFor === provider.id ? "rotate-180" : ""}`}
                   />
-                  Advanced — endpoint and models
+                  {t("prov.advanced")}
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="space-y-3 border-t px-4 py-3">
@@ -341,7 +344,7 @@ export function ProvidersCard() {
                           htmlFor={`routine-${provider.id}`}
                           className="text-xs uppercase text-muted-foreground"
                         >
-                          Routine model
+                          {t("prov.routineModel")}
                         </Label>
                         <Input
                           id={`routine-${provider.id}`}
@@ -349,7 +352,7 @@ export function ProvidersCard() {
                           onChange={(event) =>
                             editDraft(provider.id, { routine: event.target.value })
                           }
-                          placeholder="model id for routine work"
+                          placeholder={t("prov.routinePlaceholder")}
                           className="mt-1.5 font-mono text-xs"
                         />
                       </div>
@@ -358,13 +361,13 @@ export function ProvidersCard() {
                           htmlFor={`hard-${provider.id}`}
                           className="text-xs uppercase text-muted-foreground"
                         >
-                          Hard model
+                          {t("prov.hardModel")}
                         </Label>
                         <Input
                           id={`hard-${provider.id}`}
                           value={draftFor(provider).hard}
                           onChange={(event) => editDraft(provider.id, { hard: event.target.value })}
-                          placeholder="model id for hard work"
+                          placeholder={t("prov.hardPlaceholder")}
                           className="mt-1.5 font-mono text-xs"
                         />
                       </div>
@@ -382,17 +385,17 @@ export function ProvidersCard() {
                           })
                         }
                       >
-                        Save models
+                        {t("prov.saveModels")}
                       </Button>
                       <span className="text-xs text-muted-foreground">
-                        Used when this provider is the one in use
+                        {t("prov.usedWhen")}
                         {provider.base_url_source !== "default"
-                          ? ` · endpoint from your ${provider.base_url_source} setting`
+                          ? ` · ${t("prov.endpointFrom", { source: provider.base_url_source })}`
                           : ""}
                       </span>
                     </div>
                     <p className="break-all font-mono text-[11px] text-muted-foreground">
-                      {provider.base_url || "no endpoint (local session)"}
+                      {provider.base_url || t("prov.noEndpoint")}
                     </p>
                   </div>
                 </CollapsibleContent>

@@ -47,6 +47,15 @@ import { agentQuery, routinesQuery, runsQuery } from "@/lib/queries";
 import { DEMO_MODE } from "@/lib/api";
 import { CreateAgentWizard } from "@/components/create-agent-wizard";
 import { getAgent } from "@/lib/mock-data";
+import { useT, type MessageKey } from "@/lib/i18n";
+
+const tabKey: Record<string, MessageKey> = {
+  overview: "ag.tab.overview",
+  routines: "nav.routines",
+  memory: "ag.tab.memory",
+  history: "ag.tab.history",
+  settings: "ag.tab.settings",
+};
 
 export const Route = createFileRoute("/demo/agents/$agentId")({
   loader: ({ params }) => {
@@ -76,6 +85,7 @@ export const Route = createFileRoute("/demo/agents/$agentId")({
 });
 
 function AgentDetail() {
+  const t = useT();
   const { agentId } = Route.useParams();
   const navigate = useNavigate({ from: "/demo/agents/$agentId" });
   const { agents, updateAgent, toggleRoutine } = useStore();
@@ -105,7 +115,7 @@ function AgentDetail() {
     return (
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
         <ErrorState
-          message="We couldn't load this agent."
+          message={t("ag.loadError")}
           onRetry={() => void agentResult.refetch()}
         />
       </div>
@@ -118,7 +128,7 @@ function AgentDetail() {
       <Button variant="ghost" size="sm" asChild className="-ml-2 mb-5 text-muted-foreground">
         <Link to="/demo">
           <ArrowLeft />
-          Team
+          {t("nav.team")}
         </Link>
       </Button>
 
@@ -133,7 +143,7 @@ function AgentDetail() {
           <div className="min-w-56 flex-1">
             <Input
               value={name}
-              aria-label="Agent name"
+              aria-label={t("ag.nameLabel")}
               onChange={(event) => setName(event.target.value)}
               onBlur={() => name.trim() && updateAgent(agent.id, { name: name.trim() })}
               className="h-10 max-w-md border-transparent bg-transparent px-0 text-2xl font-semibold shadow-none focus-visible:border-input focus-visible:px-2"
@@ -158,14 +168,14 @@ function AgentDetail() {
                   params={{ agentId: agent.id, runId: history[0]!.id }}
                 >
                   <Eye />
-                  View Run
+                  {t("ag.viewRun")}
                 </Link>
               </Button>
             )}
             {!DEMO_MODE && (
               <Button variant="outline" onClick={() => setEditOpen(true)}>
                 <Edit3 />
-                Edit
+                {t("ag.edit")}
               </Button>
             )}
             {DEMO_MODE && (
@@ -173,19 +183,21 @@ function AgentDetail() {
                 variant={paused ? "default" : "outline"}
                 onClick={() => {
                   updateAgent(agent.id, { status: paused ? "working" : "idle" });
-                  toast.success(paused ? `${agent.name} resumed` : `${agent.name} paused`);
+                  toast.success(
+                    t(paused ? "ag.resumed" : "ag.paused", { name: agent.name }),
+                  );
                 }}
               >
                 {paused ? <Play /> : <Pause />}
-                {paused ? "Resume" : "Pause"}
+                {paused ? t("ag.resume") : t("ag.pause")}
               </Button>
             )}
           </div>
         </div>
         <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md border bg-border sm:grid-cols-4">
-          <TopMetric label="Tasks today" value={String(agent.metrics.tasksToday)} />
+          <TopMetric label={t("ag.tasksToday")} value={String(agent.metrics.tasksToday)} />
           <TopMetric
-            label="Success rate"
+            label={t("ag.successRate")}
             value={
               agent.metrics.successRate !== null
                 ? `${Math.round(agent.metrics.successRate * 100)}%`
@@ -193,13 +205,13 @@ function AgentDetail() {
             }
           />
           <TopMetric
-            label="Cost"
+            label={t("ag.cost")}
             value={`$${agent.metrics.costToday.toFixed(agent.metrics.costToday < 0.01 && agent.metrics.costToday > 0 ? 4 : 2)}`}
           />
           {DEMO_MODE ? (
-            <TopMetric label="Time saved" value={agent.metrics.timeSaved ?? "—"} />
+            <TopMetric label={t("ag.timeSaved")} value={agent.metrics.timeSaved ?? "—"} />
           ) : (
-            <TopMetric label="Runs" value={String(agent.metrics.runsTotal ?? 0)} />
+            <TopMetric label={t("ag.runs")} value={String(agent.metrics.runsTotal ?? 0)} />
           )}
         </dl>
       </header>
@@ -212,7 +224,7 @@ function AgentDetail() {
               value={tab}
               className="rounded-none border-b-2 border-transparent px-4 py-2 capitalize data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             >
-              {tab}
+              {t(tabKey[tab]!)}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -221,20 +233,19 @@ function AgentDetail() {
           <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Agent profile</CardTitle>
+                <CardTitle className="text-base">{t("ag.profile")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div>
-                  <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">Role</p>
+                  <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">{t("ag.role")}</p>
                   <p className="text-sm leading-6">
-                    {agent.description ??
-                      "No description yet — add one in agents.yaml (user agents)."}
+                    {agent.description ?? t("ag.noDescription")}
                   </p>
                 </div>
                 {agent.personality && (
                   <div>
                     <p className="mb-1 text-xs font-medium uppercase text-muted-foreground">
-                      Personality
+                      {t("ag.personality")}
                     </p>
                     <p className="text-sm leading-6">{agent.personality}</p>
                   </div>
@@ -243,22 +254,23 @@ function AgentDetail() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Performance</CardTitle>
+                <CardTitle className="text-base">{t("ag.performance")}</CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-3">
                 {DEMO_MODE ? (
                   <>
-                    <DetailMetric label="Completed" value="38 this week" />
-                    <DetailMetric label="Avg. duration" value="3m 14s" />
-                    <DetailMetric label="Approval rate" value="91%" />
-                    <DetailMetric label="Steps" value="412 today" />
+                    <DetailMetric label={t("ag.completed")} value={t("ag.thisWeek", { n: 38 })} />
+                    <DetailMetric label={t("ag.avgDuration")} value="3m 14s" />
+                    <DetailMetric label={t("ag.approvalRate")} value="91%" />
+                    <DetailMetric label={t("ag.steps")} value={t("ag.today", { n: 412 })} />
                   </>
                 ) : (
                   <>
-                    <DetailMetric label="Runs total" value={String(agent.metrics.runsTotal ?? 0)} />
-                    <DetailMetric label="Last 24h" value={String(agent.metrics.tasksToday)} />
                     <DetailMetric
-                      label="Success rate"
+                      label={t("ag.runsTotal")} value={String(agent.metrics.runsTotal ?? 0)} />
+                    <DetailMetric label={t("ag.last24h")} value={String(agent.metrics.tasksToday)} />
+                    <DetailMetric
+                      label={t("ag.successRate")}
                       value={
                         agent.metrics.successRate !== null
                           ? `${Math.round(agent.metrics.successRate * 100)}%`
@@ -266,7 +278,7 @@ function AgentDetail() {
                       }
                     />
                     <DetailMetric
-                      label="Avg. cycle"
+                      label={t("ag.avgCycle")}
                       value={
                         agent.metrics.avgCycleMs != null
                           ? `${(agent.metrics.avgCycleMs / 1000).toFixed(1)}s`
@@ -281,7 +293,7 @@ function AgentDetail() {
           <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Permissions</CardTitle>
+                <CardTitle className="text-base">{t("ag.permissions")}</CardTitle>
               </CardHeader>
               <CardContent className="divide-y rounded-md border p-0">
                 {agent.permissions.map((permission) => (
@@ -314,7 +326,7 @@ function AgentDetail() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Connected tools</CardTitle>
+                <CardTitle className="text-base">{t("ag.tools")}</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
                 {agent.tools.map((tool) => (
@@ -337,7 +349,7 @@ function AgentDetail() {
               >
                 <Switch
                   checked={routine.enabled}
-                  aria-label={`Toggle ${routine.name}`}
+                  aria-label={t("ag.toggle", { name: routine.name })}
                   onCheckedChange={() => toggleRoutine(agent.id, routine.id)}
                 />
                 <div className="min-w-0 flex-1">
@@ -351,18 +363,18 @@ function AgentDetail() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => toast.success(`${routine.name} started`)}
+                    onClick={() => toast.success(t("ag.started", { name: routine.name }))}
                   >
                     <PlayCircle />
-                    Run now
+                    {t("ag.runNow")}
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => toast.info(`Editing ${routine.name}`)}
+                    onClick={() => toast.info(t("ag.editing", { name: routine.name }))}
                   >
                     <Edit3 />
-                    Edit
+                    {t("ag.edit")}
                   </Button>
                 </div>
               </div>
@@ -373,17 +385,15 @@ function AgentDetail() {
           {!DEMO_MODE && (
             <Card className="sm:col-span-2">
               <CardHeader>
-                <CardTitle className="text-base">Agent memory</CardTitle>
+                <CardTitle className="text-base">{t("ag.memory")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Per-agent memory is not implemented yet (v2 roadmap). Every run is reconstructible
-                  in the audit trail instead — judgments, verifications and approvals live in each
-                  runset's journal.
+                  {t("ag.memoryBody")}
                 </p>
                 <Button variant="outline" size="sm" asChild>
                   <Link to="/demo/agents/$agentId" params={{ agentId: agent.id }}>
-                    See the History tab
+                    {t("ag.seeHistory")}
                   </Link>
                 </Button>
               </CardContent>
@@ -395,13 +405,15 @@ function AgentDetail() {
                 <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
                   <div>
                     <CardTitle className="text-sm">{memory.title}</CardTitle>
-                    <p className="mt-1 text-xs text-muted-foreground">Learned {memory.learnedAt}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("ag.learned", { when: memory.learnedAt })}
+                    </p>
                   </div>
                   <div className="flex">
                     <Button
                       size="icon"
                       variant="ghost"
-                      aria-label={`Edit ${memory.title}`}
+                      aria-label={t("ag.editItem", { name: memory.title })}
                       onClick={() =>
                         setEditingMemory(editingMemory === memory.id ? null : memory.id)
                       }
@@ -411,12 +423,12 @@ function AgentDetail() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      aria-label={`Delete ${memory.title}`}
+                      aria-label={t("ag.deleteItem", { name: memory.title })}
                       onClick={() => {
                         updateAgent(agent.id, {
                           memory: agent.memory.filter((item) => item.id !== memory.id),
                         });
-                        toast.success("Memory removed");
+                        toast.success(t("ag.memoryRemoved"));
                       }}
                     >
                       <Trash2 />
@@ -436,7 +448,7 @@ function AgentDetail() {
                           ),
                         });
                         setEditingMemory(null);
-                        toast.success("Memory updated");
+                        toast.success(t("ag.memoryUpdated"));
                       }}
                     />
                   ) : (
@@ -453,11 +465,11 @@ function AgentDetail() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Duration</TableHead>
-                    <TableHead className="text-right">Cost</TableHead>
+                    <TableHead>{t("ag.date")}</TableHead>
+                    <TableHead>{t("ag.task")}</TableHead>
+                    <TableHead>{t("ag.status")}</TableHead>
+                    <TableHead className="text-right">{t("ag.duration")}</TableHead>
+                    <TableHead className="text-right">{t("ag.cost")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -504,16 +516,15 @@ function AgentDetail() {
           {!DEMO_MODE && (
             <Card className="mb-4">
               <CardHeader>
-                <CardTitle className="text-base">Agent settings</CardTitle>
+                <CardTitle className="text-base">{t("ag.settings")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm leading-6 text-muted-foreground">
-                  Name, role, description, permissions (risk classes) and the tactical brain live in
-                  ~/.eeze/agents.yaml — edit them from here.
+                  {t("ag.settingsBody")}
                 </p>
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                   <Edit3 />
-                  Edit {agent.name}
+                  {t("ag.editItem", { name: agent.name })}
                 </Button>
               </CardContent>
             </Card>
@@ -521,23 +532,23 @@ function AgentDetail() {
           {DEMO_MODE && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Models, budget & autonomy</CardTitle>
+                <CardTitle className="text-base">{t("ag.modelsBudget")}</CardTitle>
               </CardHeader>
               <CardContent className="grid gap-7 lg:grid-cols-2">
                 <SettingSelect
-                  label="Jev model"
+                  label={t("ag.jevModel")}
                   value={agent.model}
                   options={["claude-sonnet-4.6", "gpt-5.2-mini", "gemini-3-pro"]}
                   onChange={(value) => updateAgent(agent.id, { model: value })}
                 />
                 <SettingSelect
-                  label="Planner model"
+                  label={t("ag.plannerModel")}
                   value={agent.plannerModel}
                   options={["jev-planner-2", "jev-planner-fast", "jev-planner-deep"]}
                   onChange={(value) => updateAgent(agent.id, { plannerModel: value })}
                 />
                 <div className="space-y-3">
-                  <Label htmlFor="budget">Maximum daily budget · ${agent.dailyBudget}</Label>
+                  <Label htmlFor="budget">{t("ag.budget", { n: agent.dailyBudget })}</Label>
                   <Slider
                     id="budget"
                     value={[agent.dailyBudget]}
@@ -548,13 +559,13 @@ function AgentDetail() {
                   />
                 </div>
                 <SettingSelect
-                  label="Autonomy level"
+                  label={t("ag.autonomy")}
                   value={agent.autonomy}
                   options={["suggest", "approve", "autonomous"]}
                   optionLabels={{
-                    suggest: "Always ask",
-                    approve: "Ask on risk",
-                    autonomous: "Fully autonomous",
+                    suggest: t("ag.auto.suggest"),
+                    approve: t("ag.auto.approve"),
+                    autonomous: t("ag.auto.autonomous"),
                   }}
                   onChange={(value) =>
                     updateAgent(agent.id, { autonomy: value as typeof agent.autonomy })
@@ -586,7 +597,14 @@ function DetailMetric({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+const outcomeKey: Record<"running" | "success" | "failed" | "cancelled", MessageKey> = {
+  running: "status.running",
+  success: "ag.out.success",
+  failed: "ag.out.failed",
+  cancelled: "ag.out.cancelled",
+};
 function Outcome({ outcome }: { outcome: "running" | "success" | "failed" | "cancelled" }) {
+  const t = useT();
   return (
     <Badge
       variant="outline"
@@ -600,7 +618,7 @@ function Outcome({ outcome }: { outcome: "running" | "success" | "failed" | "can
               : "text-muted-foreground"
       }
     >
-      {outcome}
+      {t(outcomeKey[outcome])}
     </Badge>
   );
 }
@@ -638,6 +656,7 @@ function SettingSelect({
 }
 
 function AgentRoutines({ agentId }: { agentId: string }) {
+  const t = useT();
   const routinesResult = useQuery(routinesQuery());
   const mine = (routinesResult.data ?? []).filter((routine) => routine.agent_id === agentId);
   if (routinesResult.isPending) return <RowSkeleton rows={2} />;
@@ -645,9 +664,9 @@ function AgentRoutines({ agentId }: { agentId: string }) {
     return (
       <Card>
         <CardContent className="py-8 text-center text-sm text-muted-foreground">
-          No routines for this agent yet —{" "}
+          {t("ag.noRoutines")}{" "}
           <Link to="/routines" className="underline">
-            schedule one on the Routines page
+            {t("ag.scheduleOne")}
           </Link>
           .
         </CardContent>
@@ -666,16 +685,16 @@ function AgentRoutines({ agentId }: { agentId: string }) {
               <Clock3 className="size-3.5" />
               {routine.kind}
               {routine.next_run_at
-                ? ` · next ${new Date(routine.next_run_at).toLocaleString()}`
-                : " · no next run"}
+                ? ` · ${t("ag.next", { when: new Date(routine.next_run_at).toLocaleString() })}`
+                : ` · ${t("ag.noNext")}`}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={routine.enabled ? "secondary" : "outline"} className="font-normal">
-              {routine.enabled ? "Enabled" : "Disabled"}
+              {routine.enabled ? t("ag.enabled") : t("ag.disabled")}
             </Badge>
             <Button size="sm" variant="outline" asChild>
-              <Link to="/routines">Manage</Link>
+              <Link to="/routines">{t("ag.manage")}</Link>
             </Button>
           </div>
         </div>

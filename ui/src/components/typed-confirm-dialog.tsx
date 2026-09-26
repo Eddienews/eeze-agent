@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useT } from "@/lib/i18n";
 
 export function TypedConfirmDialog({
   open,
@@ -32,6 +33,7 @@ export function TypedConfirmDialog({
   onConfirm: () => void;
   children?: ReactNode;
 }) {
+  const t = useT();
   const [value, setValue] = useState("");
   useEffect(() => {
     if (!open) setValue("");
@@ -56,8 +58,9 @@ export function TypedConfirmDialog({
         {children}
         <div>
           <Label htmlFor={inputId}>
-            Type <span className="font-mono font-semibold text-destructive">{keyword}</span> to
-            confirm
+            {t("confirm.type")}{" "}
+            <span className="font-mono font-semibold text-destructive">{keyword}</span>{" "}
+            {t("confirm.toConfirm")}
           </Label>
           <Input
             id={inputId}
@@ -69,7 +72,7 @@ export function TypedConfirmDialog({
           />
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t("m.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             disabled={!ready}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:pointer-events-none disabled:opacity-50"

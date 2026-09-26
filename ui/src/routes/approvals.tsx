@@ -27,19 +27,10 @@ const riskStyles: Record<string, string> = {
   system: "bg-info/12 text-info border-info/25",
 };
 
-const riskLabels: Record<string, string> = {
-  read: "Read",
-  write_local: "Write (local)",
-  external_send: "Send",
-  install_exec: "Runs a program",
-  destructive: "Destructive",
-  system: "System",
-};
-
 function RiskPill({ risk }: { risk: string }) {
   const t = useT();
   const key = `risk.${risk}` as MessageKey;
-  const label = t(key) === key ? (riskLabels[risk] ?? risk) : t(key);
+  const label = t(key) === key ? risk : t(key);
   return (
     <Badge
       variant="outline"
@@ -162,9 +153,10 @@ function ApprovalsPage() {
                     <RiskPill risk={item.risk_class} />
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    run <span className="font-mono text-xs">{item.run_id}</span> · step{" "}
+                    {t("a2.run")} <span className="font-mono text-xs">{item.run_id}</span> ·{" "}
+                    {t("a2.step")}{" "}
                     <span className="font-mono text-xs">{item.step_id}</span> ·{" "}
-                    {item.requested_at ?? "just now"}
+                    {item.requested_at ?? t("a2.justNow")}
                   </p>
                 </div>
               </CardHeader>

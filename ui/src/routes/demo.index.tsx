@@ -23,9 +23,10 @@ import {
 import { AgentAvatar } from "@/components/agent-avatar";
 import { StatusBadge } from "@/components/status-badge";
 import { useStore } from "@/components/app-store";
-import { statusLabel, type AgentStatus } from "@/lib/mock-data";
+import { type AgentStatus } from "@/lib/mock-data";
 import { CreateAgentWizard } from "@/components/create-agent-wizard";
 import { DEMO_MODE, api } from "@/lib/api";
+import { useT, type MessageKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/demo/")({
   head: () => ({
@@ -48,12 +49,20 @@ export const Route = createFileRoute("/demo/")({
 
 const statuses: (AgentStatus | "all")[] = ["all", "working", "needs_approval", "idle", "error"];
 
+const statusKey: Record<AgentStatus, MessageKey> = {
+  idle: "team.st.idle",
+  working: "team.st.working",
+  needs_approval: "team.st.needsApproval",
+  error: "team.st.error",
+};
+
 function Dashboard() {
+  const t = useT();
   const queryClient = useQueryClient();
   const removeAgent = useMutation({
     mutationFn: (id: string) => api.removeAgent(id),
     onSuccess: async () => {
-      toast.success("Agent removed.");
+      toast.success(t("team.removed"));
       await queryClient.invalidateQueries({ queryKey: ["agents"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -89,9 +98,13 @@ function Dashboard() {
     <div className="mx-auto max-w-7xl px-4 py-8 pb-24 sm:px-6 sm:py-10 md:pb-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Your team</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("team.title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {agents.length} agents · {totals.tasks} tasks today · ${totals.cost.toFixed(2)} spent
+            {t("team.summary", {
+              agents: agents.length,
+              tasks: totals.tasks,
+              cost: totals.cost.toFixed(2),
+            })}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -101,7 +114,7 @@ function Dashboard() {
           />
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
-            Create Agent
+            {t("team.create")}
           </Button>
         </div>
       </div>
@@ -114,19 +127,19 @@ function Dashboard() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setCommandOpen(true)}
-            aria-label="Command bar"
-            placeholder="Ask anything, or @mention an agent…"
+            aria-label={t("team.commandBar")}
+            placeholder={t("team.askPlaceholder")}
             className="pl-9"
           />
         </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as AgentStatus | "all")}>
-          <SelectTrigger className="w-full sm:w-44" aria-label="Filter by status">
-            <SelectValue placeholder="All statuses" />
+          <SelectTrigger className="w-full sm:w-44" aria-label={t("team.filterStatus")}>
+            <SelectValue placeholder={t("team.allStatuses")} />
           </SelectTrigger>
           <SelectContent>
             {statuses.map((s) => (
               <SelectItem key={s} value={s}>
-                {s === "all" ? "All statuses" : statusLabel[s]}
+                {s === "all" ? t("team.allStatuses") : t(statusKey[s])}
               </SelectItem>
             ))}
           </SelectContent>
@@ -135,7 +148,7 @@ function Dashboard() {
 
       {offline && (
         <ErrorState
-          detail="Showing sample data so the design stays reviewable."
+          detail={t("team.sampleData")}
           onRetry={() => void agentsResult.refetch()}
         />
       )}
@@ -160,12 +173,12 @@ function Dashboard() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="line-clamp-2 min-h-10 rounded-md bg-muted/60 px-3 py-2 text-sm text-muted-foreground">
-                  {agent.currentTask ?? "No active task"}
+                  {agent.currentTask ?? t("team.noTask")}
                 </p>
                 <dl className="grid grid-cols-3 gap-2 text-center">
-                  <Metric label="Tasks" value={String(agent.metrics.tasksToday)} />
+                  <Metric label={t("team.tasks")} value={String(agent.metrics.tasksToday)} />
                   <Metric
-                    label="Success"
+                    label={t("team.success")}
                     value={
                       agent.metrics.successRate !== null
                         ? `${Math.round(agent.metrics.successRate * 100)}%`
@@ -173,7 +186,7 @@ function Dashboard() {
                     }
                   />
                   <Metric
-                    label="Cost"
+                    label={t("team.cost")}
                     value={`$${agent.metrics.costToday.toFixed(agent.metrics.costToday < 0.01 && agent.metrics.costToday > 0 ? 4 : 2)}`}
                   />
                 </dl>
@@ -181,20 +194,18 @@ function Dashboard() {
               <CardFooter className="gap-2">
                 <Button variant="secondary" className="flex-1" asChild>
                   <Link to="/demo/agents/$agentId" params={{ agentId: agent.id }}>
-                    Open {agent.name}
+                    {t("team.open", { name: agent.name })}
                   </Link>
                 </Button>
                 {!DEMO_MODE && agent.source === "user" && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={`Remove ${agent.name}`}
+                    aria-label={t("team.removeLabel", { name: agent.name })}
                     disabled={removeAgent.isPending}
                     onClick={() => {
                       if (
-                        window.confirm(
-                          `Remove agent "${agent.name}"? Runs stay in the audit trail.`,
-                        )
+                        window.confirm(t("team.removeConfirm", { name: agent.name }))
                       ) {
                         removeAgent.mutate(agent.id);
                       }
@@ -211,7 +222,7 @@ function Dashboard() {
 
       {!agentsResult.isPending && visible.length === 0 && (
         <p className="mt-16 text-center text-sm text-muted-foreground">
-          No agents match this filter.
+          {t("team.noMatch")}
         </p>
       )}
       <CreateAgentWizard open={createOpen} onOpenChange={setCreateOpen} />
@@ -219,7 +230,7 @@ function Dashboard() {
         size="icon"
         className="fixed bottom-5 right-5 z-30 size-12 rounded-full shadow-lg md:hidden"
         onClick={() => setCommandOpen(true)}
-        aria-label="Open command bar"
+        aria-label={t("team.openCommand")}
       >
         <Search className="size-5" />
       </Button>

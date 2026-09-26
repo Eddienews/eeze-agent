@@ -21,15 +21,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { DEMO_MODE, api, type AgentCreateRequest } from "@/lib/api";
 import type { Agent } from "@/lib/mock-data";
+import { useT, type MessageKey } from "@/lib/i18n";
 
-const permissions = [
-  ["browser", "Browser control", "Open pages and interact with websites."],
-  ["files", "Local files", "Read and update files you select."],
-  ["email", "Send email", "Draft and send messages from connected accounts."],
-  ["calendar", "Calendar", "Read events and manage your schedule."],
-  ["payments", "Payments", "Prepare and submit financial transactions."],
-  ["terminal", "Terminal", "Run approved commands on your computer."],
-] as const;
+const permissions: readonly (readonly [string, MessageKey, MessageKey])[] = [
+  ["browser", "wiz.perm.browser", "wiz.perm.browserHint"],
+  ["files", "wiz.perm.files", "wiz.perm.filesHint"],
+  ["email", "wiz.perm.email", "wiz.perm.emailHint"],
+  ["calendar", "wiz.perm.calendar", "wiz.perm.calendarHint"],
+  ["payments", "wiz.perm.payments", "wiz.perm.paymentsHint"],
+  ["terminal", "wiz.perm.terminal", "wiz.perm.terminalHint"],
+];
 
 /** UI grants → runtime risk classes (a grant can map to several). */
 const GRANT_TO_RISK: Record<string, string[]> = {
@@ -46,7 +47,8 @@ const templates = [
     id: "fin",
     name: "Fin",
     role: "Accounting & Finance",
-    description: "Reconcile invoices, expenses, and cash flow.",
+    roleKey: "wiz.tpl.finRole",
+    descKey: "wiz.tpl.finDesc",
     accent: "emerald",
     icon: BookOpen,
     grants: ["browser", "files", "email"],
@@ -55,7 +57,8 @@ const templates = [
     id: "inbox",
     name: "Inbox",
     role: "Email & Scheduling",
-    description: "Triage messages and protect your calendar.",
+    roleKey: "wiz.tpl.inboxRole",
+    descKey: "wiz.tpl.inboxDesc",
     accent: "violet",
     icon: Mail,
     grants: ["browser", "email", "calendar"],
@@ -64,7 +67,8 @@ const templates = [
     id: "scout",
     name: "Scout",
     role: "Research & Monitoring",
-    description: "Track sources, competitors, and changes.",
+    roleKey: "wiz.tpl.scoutRole",
+    descKey: "wiz.tpl.scoutDesc",
     accent: "amber",
     icon: Search,
     grants: ["browser", "files"],
@@ -73,7 +77,8 @@ const templates = [
     id: "scribe",
     name: "Scribe",
     role: "Documents & Forms",
-    description: "Draft documents and complete repetitive forms.",
+    roleKey: "wiz.tpl.scribeRole",
+    descKey: "wiz.tpl.scribeDesc",
     accent: "sky",
     icon: FileText,
     grants: ["browser", "files"],
@@ -82,7 +87,8 @@ const templates = [
     id: "qa",
     name: "QA",
     role: "Testing & Verification",
-    description: "Check workflows and report clear failures.",
+    roleKey: "wiz.tpl.qaRole",
+    descKey: "wiz.tpl.qaDesc",
     accent: "rose",
     icon: Bug,
     grants: ["browser", "terminal"],
@@ -91,7 +97,8 @@ const templates = [
     id: "custom",
     name: "Custom",
     role: "Start from scratch",
-    description: "Build a focused agent for your own workflow.",
+    roleKey: "wiz.tpl.customRole",
+    descKey: "wiz.tpl.customDesc",
     accent: "slate",
     icon: Sparkles,
     grants: [],
@@ -100,10 +107,18 @@ const templates = [
 
 const colors = ["emerald", "violet", "amber", "sky", "rose", "slate", "blue", "lime"];
 const autonomyOptions = [
-  ["suggest", "Always ask", "Approve every action"],
-  ["approve", "Ask on risk", "Auto-execute read/write, ask for send/pay (Recommended)"],
-  ["autonomous", "Fully autonomous", "Execute everything within budget"],
-] as const;
+  ["suggest", "wiz.auto.suggest", "wiz.auto.suggestHint"],
+  ["approve", "wiz.auto.approve", "wiz.auto.approveHint"],
+  ["autonomous", "wiz.auto.autonomous", "wiz.auto.autonomousHint"],
+] as const satisfies readonly (readonly [string, MessageKey, MessageKey])[];
+
+const STEP_TITLES: MessageKey[] = [
+  "wiz.step.template",
+  "wiz.step.personalize",
+  "wiz.step.permissions",
+  "wiz.step.autonomy",
+  "wiz.step.review",
+];
 
 export function CreateAgentWizard({
   open,
@@ -114,6 +129,7 @@ export function CreateAgentWizard({
   onOpenChange: (open: boolean) => void;
   editAgent?: Agent | null;
 }) {
+  const t = useT();
   const { agents, addAgent } = useStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -121,7 +137,7 @@ export function CreateAgentWizard({
   const [templateId, setTemplateId] = useState("fin");
   const template = templates.find((item) => item.id === templateId) ?? templates[0];
   const [name, setName] = useState("Fin 2.0");
-  const [description, setDescription] = useState<string>(template.description);
+  const [description, setDescription] = useState<string>(() => t(template.descKey));
   const [accent, setAccent] = useState(template.accent as string);
   const [grants, setGrants] = useState<string[]>([...template.grants]);
   const [autonomy, setAutonomy] = useState<Agent["autonomy"]>("approve");
@@ -134,8 +150,8 @@ export function CreateAgentWizard({
   const chooseTemplate = (id: string) => {
     const next = templates.find((item) => item.id === id) ?? templates[0];
     setTemplateId(next.id);
-    setName(next.id === "custom" ? "My Agent" : `${next.name} 2.0`);
-    setDescription(next.description);
+    setName(next.id === "custom" ? t("wiz.myAgent") : `${next.name} 2.0`);
+    setDescription(t(next.descKey));
     setAccent(next.accent);
     setGrants([...next.grants]);
   };
@@ -148,8 +164,8 @@ export function CreateAgentWizard({
     onSuccess: async (agent) => {
       toast.success(
         editAgent
-          ? `${agent.name} updated.`
-          : `${agent.name} is ready — pick it in the agent selector.`,
+          ? t("wiz.updated", { name: agent.name })
+          : t("wiz.readyReal", { name: agent.name }),
       );
       await queryClient.invalidateQueries({ queryKey: ["agents"] });
       close();
@@ -158,7 +174,7 @@ export function CreateAgentWizard({
     onError: (error: Error) => toast.error(error.message),
   });
   const create = () => {
-    const displayName = name.trim() || "New Agent";
+    const displayName = name.trim() || t("wiz.newAgent");
     if (!DEMO_MODE) {
       const slug =
         displayName
@@ -188,33 +204,31 @@ export function CreateAgentWizard({
     }-${Date.now()}`;
     addAgent({
       id,
-      name: name.trim() || "New Agent",
-      role: template.role === "Start from scratch" ? "Custom workflow" : template.role,
+      name: name.trim() || t("wiz.newAgent"),
+      role: template.role === "Start from scratch" ? t("wiz.customWorkflow") : t(template.roleKey),
       accent,
       status: "idle",
       metrics: { tasksToday: 0, successRate: 1, costToday: 0, timeSaved: "0h" },
       description,
-      personality: "Calm, precise, and transparent about every decision.",
+      personality: t("wiz.personality"),
       model: "claude-sonnet-4.6",
       plannerModel: "jev-planner-2",
       autonomy,
       dailyBudget: 10,
       permissions: permissions.map(([permissionId, label]) => ({
         id: permissionId,
-        label,
+        label: t(label),
         granted: grants.includes(permissionId),
       })),
       tools: [],
       routines: [],
       memory: [],
       history: [],
-      createdAt: "Today",
+      createdAt: t("header.today"),
     });
     close();
     void navigate({ to: "/demo" });
-    toast.success(
-      `${name.trim() || "New Agent"} is ready — try asking it to reconcile your first invoice`,
-    );
+    toast.success(t("wiz.readyDemo", { name: name.trim() || t("wiz.newAgent") }));
   };
 
   return (
@@ -222,7 +236,7 @@ export function CreateAgentWizard({
       <DialogContent className="flex max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-5 pr-12">
           {!editAgent && (
-            <div className="mb-3 flex gap-1.5" aria-label={`Step ${step} of 5`}>
+            <div className="mb-3 flex gap-1.5" aria-label={t("wiz.stepOf", { n: step })}>
               {[1, 2, 3, 4, 5].map((number) => (
                 <span
                   key={number}
@@ -236,21 +250,15 @@ export function CreateAgentWizard({
           )}
           <DialogTitle>
             {editAgent
-              ? `Edit ${editAgent.name}`
-              : [
-                  "Choose a template",
-                  "Personalize",
-                  "Permissions",
-                  "Autonomy level",
-                  "Review & create",
-                ][step - 1]}
+              ? t("wiz.edit", { name: editAgent.name })
+              : t(STEP_TITLES[step - 1] ?? "wiz.step.template")}
           </DialogTitle>
           <DialogDescription>
             {editAgent
               ? editAgent.source === "repo"
-                ? "This is a built-in agent — saving creates a user-level override (~/.eeze/agents.yaml)."
-                : "Saved to your user file (~/.eeze/agents.yaml)."
-              : `Step ${step} of 5`}
+                ? t("wiz.builtinNote")
+                : t("wiz.userFileNote")
+              : t("wiz.stepOf", { n: step })}
           </DialogDescription>
         </DialogHeader>
 
@@ -288,10 +296,14 @@ export function CreateAgentWizard({
                           <Icon className="size-4" />
                         </span>
                         <span>
-                          <span className="block font-medium">{item.name}</span>
-                          <span className="block text-xs text-muted-foreground">{item.role}</span>
+                          <span className="block font-medium">
+                            {item.id === "custom" ? t("wiz.custom") : item.name}
+                          </span>
+                          <span className="block text-xs text-muted-foreground">
+                            {t(item.roleKey)}
+                          </span>
                           <span className="mt-2 block text-sm text-muted-foreground">
-                            {item.description}
+                            {t(item.descKey)}
                           </span>
                         </span>
                       </button>
@@ -305,14 +317,12 @@ export function CreateAgentWizard({
                   <div className="flex items-center gap-4">
                     <AgentAvatar name={name || "A"} accent={accent} size="lg" />
                     <div>
-                      <p className="font-medium">Agent identity</p>
-                      <p className="text-sm text-muted-foreground">
-                        Choose a name and identity color.
-                      </p>
+                      <p className="font-medium">{t("wiz.identity")}</p>
+                      <p className="text-sm text-muted-foreground">{t("wiz.identityHint")}</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="agent-name">Name</Label>
+                    <Label htmlFor="agent-name">{t("m.name")}</Label>
                     <Input
                       id="agent-name"
                       value={name}
@@ -320,13 +330,13 @@ export function CreateAgentWizard({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Avatar color</Label>
+                    <Label>{t("wiz.avatarColor")}</Label>
                     <div className="flex flex-wrap gap-2">
                       {colors.map((color) => (
                         <button
                           key={color}
                           type="button"
-                          aria-label={`${color} avatar`}
+                          aria-label={t("wiz.colorAria", { color })}
                           onClick={() => setAccent(color)}
                           className={cn(
                             "agent-swatch size-8 rounded-full ring-offset-2 ring-offset-background",
@@ -338,7 +348,7 @@ export function CreateAgentWizard({
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="agent-description">Role description</Label>
+                    <Label htmlFor="agent-description">{t("wiz.roleDesc")}</Label>
                     <Textarea
                       id="agent-description"
                       value={description}
@@ -354,8 +364,8 @@ export function CreateAgentWizard({
                   {permissions.map(([id, label, detail]) => (
                     <div key={id} className="flex items-center gap-4 p-4">
                       <div className="min-w-0 flex-1">
-                        <Label htmlFor={`wizard-${id}`}>{label}</Label>
-                        <p className="mt-0.5 text-sm text-muted-foreground">{detail}</p>
+                        <Label htmlFor={`wizard-${id}`}>{t(label)}</Label>
+                        <p className="mt-0.5 text-sm text-muted-foreground">{t(detail)}</p>
                       </div>
                       <Switch
                         id={`wizard-${id}`}
@@ -388,8 +398,10 @@ export function CreateAgentWizard({
                     >
                       <RadioGroupItem id={`autonomy-${value}`} value={value} className="mt-0.5" />
                       <span>
-                        <span className="block font-medium">{label}</span>
-                        <span className="mt-1 block text-sm text-muted-foreground">{detail}</span>
+                        <span className="block font-medium">{t(label)}</span>
+                        <span className="mt-1 block text-sm text-muted-foreground">
+                          {t(detail)}
+                        </span>
                       </span>
                     </Label>
                   ))}
@@ -402,31 +414,36 @@ export function CreateAgentWizard({
                     <div className="flex items-center gap-3">
                       <AgentAvatar name={name || "A"} accent={accent} />
                       <div>
-                        <p className="font-medium">{name || "New Agent"}</p>
-                        <p className="text-sm text-muted-foreground">{template.role}</p>
+                        <p className="font-medium">{name || t("wiz.newAgent")}</p>
+                        <p className="text-sm text-muted-foreground">{t(template.roleKey)}</p>
                       </div>
                     </div>
                     <p className="mt-3 text-sm text-muted-foreground">{description}</p>
                   </div>
                   <div className="rounded-md border p-4">
                     <p className="text-xs font-medium uppercase text-muted-foreground">
-                      Permissions
+                      {t("wiz.step.permissions")}
                     </p>
                     <p className="mt-2 text-sm">
                       {selectedPermissions.length
-                        ? selectedPermissions.map(([, label]) => label).join(", ")
-                        : "None"}
-                    </p>
-                  </div>
-                  <div className="rounded-md border p-4">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">Autonomy</p>
-                    <p className="mt-2 text-sm">
-                      {autonomyOptions.find(([value]) => value === autonomy)?.[1]}
+                        ? selectedPermissions.map(([, label]) => t(label)).join(", ")
+                        : t("wiz.none")}
                     </p>
                   </div>
                   <div className="rounded-md border p-4">
                     <p className="text-xs font-medium uppercase text-muted-foreground">
-                      Tactical brain
+                      {t("wiz.autonomy")}
+                    </p>
+                    <p className="mt-2 text-sm">
+                      {t(
+                        autonomyOptions.find(([value]) => value === autonomy)?.[1] ??
+                          "wiz.auto.approve",
+                      )}
+                    </p>
+                  </div>
+                  <div className="rounded-md border p-4">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">
+                      {t("wiz.brain")}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       <Button
@@ -435,7 +452,7 @@ export function CreateAgentWizard({
                         variant={brain === "jev" ? "default" : "outline"}
                         onClick={() => setBrain("jev")}
                       >
-                        Jev · fast
+                        {t("wiz.jevFast")}
                       </Button>
                       <Button
                         type="button"
@@ -443,12 +460,10 @@ export function CreateAgentWizard({
                         variant={brain === "llm" ? "default" : "outline"}
                         onClick={() => setBrain("llm")}
                       >
-                        LLM · flexible
+                        {t("wiz.llmFlexible")}
                       </Button>
                     </div>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Same judgments, swappable engine. Risky steps stay gated either way.
-                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">{t("wiz.brainHint")}</p>
                   </div>
                 </div>
               )}
@@ -459,13 +474,17 @@ export function CreateAgentWizard({
                 variant="outline"
                 onClick={() => (step === 1 ? close() : setStep((current) => current - 1))}
               >
-                {step === 1 ? "Cancel" : "Back"}
+                {step === 1 ? t("m.cancel") : t("wiz.back")}
               </Button>
               <Button
                 onClick={() => (step === 5 ? create() : setStep((current) => current + 1))}
                 disabled={(step === 2 && !name.trim()) || createReal.isPending}
               >
-                {step === 5 ? (createReal.isPending ? "Creating…" : "Create Agent") : "Next"}
+                {step === 5
+                  ? createReal.isPending
+                    ? t("wiz.creating")
+                    : t("wiz.create")
+                  : t("wiz.next")}
               </Button>
             </div>
           </>
@@ -475,33 +494,13 @@ export function CreateAgentWizard({
   );
 }
 
-const RISK_CHOICES: { id: string; label: string; hint: string }[] = [
-  { id: "read", label: "Read", hint: "Look at the screen and files — always on." },
-  {
-    id: "write_local",
-    label: "Write local",
-    hint: "Type, save and change things on this computer.",
-  },
-  {
-    id: "external_send",
-    label: "Send externally",
-    hint: "Email or messages outside this computer. Each risky step waits for your click.",
-  },
-  {
-    id: "install_exec",
-    label: "Install / run",
-    hint: "Install software and run programs. Each risky step waits for your click.",
-  },
-  {
-    id: "destructive",
-    label: "Destructive",
-    hint: "Delete or overwrite data. Each risky step waits for your click.",
-  },
-  {
-    id: "system",
-    label: "System",
-    hint: "Change system settings. Each risky step waits for your click.",
-  },
+const RISK_CHOICES: { id: string; label: MessageKey; hint: MessageKey }[] = [
+  { id: "read", label: "risk.read", hint: "wiz.risk.readHint" },
+  { id: "write_local", label: "wiz.risk.writeLocal", hint: "wiz.risk.writeLocalHint" },
+  { id: "external_send", label: "wiz.risk.send", hint: "wiz.risk.sendHint" },
+  { id: "install_exec", label: "wiz.risk.install", hint: "wiz.risk.installHint" },
+  { id: "destructive", label: "wiz.risk.destructive", hint: "wiz.risk.destructiveHint" },
+  { id: "system", label: "risk.system", hint: "wiz.risk.systemHint" },
 ];
 
 function EditAgentForm({
@@ -515,6 +514,7 @@ function EditAgentForm({
   onSave: (payload: AgentCreateRequest) => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const [name, setName] = useState(agent.name);
   const [role, setRole] = useState(agent.role);
   const [description, setDescription] = useState(agent.description ?? "");
@@ -542,11 +542,11 @@ function EditAgentForm({
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="edit-name">Name</Label>
+            <Label htmlFor="edit-name">{t("m.name")}</Label>
             <Input id="edit-name" value={name} onChange={(event) => setName(event.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="edit-role">Role</Label>
+            <Label htmlFor="edit-role">{t("wiz.role")}</Label>
             <Input
               id="edit-role"
               value={role}
@@ -556,30 +556,30 @@ function EditAgentForm({
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="edit-description">Role description</Label>
+          <Label htmlFor="edit-description">{t("wiz.roleDesc")}</Label>
           <Textarea
             id="edit-description"
             value={description}
-            placeholder="What this agent handles, in one or two sentences."
+            placeholder={t("wiz.descPlaceholder")}
             className="min-h-20 resize-none"
             onChange={(event) => setDescription(event.target.value)}
           />
         </div>
         <div>
           <p className="text-xs font-medium uppercase text-muted-foreground">
-            Permissions (risk classes)
+            {t("wiz.permsRisk")}
           </p>
           <div className="mt-2 divide-y rounded-md border">
             {RISK_CHOICES.map((choice) => (
               <div key={choice.id} className="flex items-center justify-between gap-4 p-3.5">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium">{choice.label}</p>
-                  <p className="text-xs text-muted-foreground">{choice.hint}</p>
+                  <p className="text-sm font-medium">{t(choice.label)}</p>
+                  <p className="text-xs text-muted-foreground">{t(choice.hint)}</p>
                 </div>
                 <Switch
                   checked={risk.has(choice.id)}
                   disabled={choice.id === "read"}
-                  aria-label={choice.label}
+                  aria-label={t(choice.label)}
                   onCheckedChange={() => toggle(choice.id)}
                 />
               </div>
@@ -587,7 +587,7 @@ function EditAgentForm({
           </div>
         </div>
         <div className="rounded-md border p-4">
-          <p className="text-xs font-medium uppercase text-muted-foreground">Tactical brain</p>
+          <p className="text-xs font-medium uppercase text-muted-foreground">{t("wiz.brain")}</p>
           <div className="mt-2 flex gap-2">
             <Button
               type="button"
@@ -595,7 +595,7 @@ function EditAgentForm({
               variant={brain === "jev" ? "default" : "outline"}
               onClick={() => setBrain("jev")}
             >
-              Jev · fast
+              {t("wiz.jevFast")}
             </Button>
             <Button
               type="button"
@@ -603,17 +603,15 @@ function EditAgentForm({
               variant={brain === "llm" ? "default" : "outline"}
               onClick={() => setBrain("llm")}
             >
-              LLM · flexible
+              {t("wiz.llmFlexible")}
             </Button>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Same judgments, swappable engine. Risky steps stay gated either way.
-          </p>
+          <p className="mt-2 text-xs text-muted-foreground">{t("wiz.brainHint")}</p>
         </div>
       </div>
       <div className="flex items-center justify-between border-t bg-background px-6 py-4">
         <Button variant="outline" onClick={onCancel}>
-          Cancel
+          {t("m.cancel")}
         </Button>
         <Button
           disabled={!name.trim() || saving}
@@ -632,7 +630,7 @@ function EditAgentForm({
             })
           }
         >
-          {saving ? "Saving…" : "Save changes"}
+          {saving ? t("wiz.saving") : t("wiz.saveChanges")}
         </Button>
       </div>
     </>

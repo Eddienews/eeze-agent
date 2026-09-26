@@ -26,6 +26,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RefreshButton } from "@/components/data-state";
 import { runQuery } from "@/lib/queries";
 import { DEMO_MODE, mapRun, type ApiRunStep } from "@/lib/api";
+import { useT, type MessageKey, type Translate } from "@/lib/i18n";
 
 const titleizeId = (value: string) =>
   value.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -195,7 +196,14 @@ const mockSteps: RunStep[] = [
 
 const stepTypes: StepType[] = ["scan", "click", "type", "scroll"];
 
-function mapSteps(raw: ApiRunStep[]): RunStep[] {
+const stepTypeKey: Record<StepType, MessageKey> = {
+  scan: "run.type.scan",
+  click: "run.type.click",
+  type: "run.type.type",
+  scroll: "run.type.scroll",
+};
+
+function mapSteps(raw: ApiRunStep[], t: Translate): RunStep[] {
   let elapsed = 0;
   return raw.map((item, index) => {
     const label = `${item.action ?? ""} ${item.id ?? ""}`.toLowerCase();
@@ -204,7 +212,7 @@ function mapSteps(raw: ApiRunStep[]): RunStep[] {
     const seconds = Math.round(elapsed / 1000);
     elapsed += item.ms ?? 0;
     const target = item.selected ?? item.target ?? "element";
-    const describe = item.intent || item.action || String(item.id ?? `Step ${index + 1}`);
+    const describe = item.intent || item.action || String(item.id ?? t("run.stepN", { n: index + 1 }));
     return {
       id: item.index ?? index + 1,
       time: `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`,
@@ -212,12 +220,12 @@ function mapSteps(raw: ApiRunStep[]): RunStep[] {
       description: `${describe.replace(/[_-]+/g, " ")} — ${target}`,
       status:
         item.ok === false || (item.status ?? "").toLowerCase() === "failed" ? "failed" : "success",
-      question: item.judgment?.question ?? item.judgment_question ?? "No recorded question.",
+      question: item.judgment?.question ?? item.judgment_question ?? t("run.noQuestion"),
       answer:
         item.judgment?.answer ??
         item.judgment_answer ??
         item.verification ??
-        "No recorded judgment.",
+        t("run.noJudgment"),
       confidence: item.judgment?.confidence ?? item.confidence ?? 0,
       target: item.judgment?.answer ?? target,
       box: mockSteps[index % mockSteps.length]!.box,
@@ -267,13 +275,14 @@ export const Route = createFileRoute("/demo/agents/$agentId_/runs/$runId")({
 });
 
 function RunViewer() {
+  const t = useT();
   const { agentId, runId } = Route.useParams();
   const { agent: loaderAgent, run: loaderRun } = Route.useLoaderData();
   const runResult = useQuery(runQuery(runId));
   const liveRun = runResult.data ? mapRun(runResult.data) : null;
   const run = liveRun ?? loaderRun;
   const agent = loaderAgent;
-  const apiSteps = runResult.data?.steps?.length ? mapSteps(runResult.data.steps) : null;
+  const apiSteps = runResult.data?.steps?.length ? mapSteps(runResult.data.steps, t) : null;
   const steps = apiSteps ?? (DEMO_MODE ? mockSteps : []);
   const [selected, setSelected] = useState(run.outcome === "running" ? 7 : steps.length - 1);
   const [state, setState] = useState<"running" | "paused" | "stopped" | "completed">(
@@ -300,11 +309,10 @@ function RunViewer() {
     return (
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         <div className="rounded-md border bg-card p-6 text-sm leading-6 text-muted-foreground">
-          No recorded steps for this run — it may have paused before finishing a step, or the runset
-          predates step records.{" "}
+          {t("run.noSteps")}{" "}
           {run.journalUrl ? (
             <a className="underline" href={run.journalUrl}>
-              Open the raw journal
+              {t("run.rawJournal")}
             </a>
           ) : null}
         </div>
@@ -324,7 +332,7 @@ function RunViewer() {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
-    toast.success("Audit log exported");
+    toast.success(t("run.exported"));
   };
 
   return (
@@ -332,7 +340,7 @@ function RunViewer() {
       <Button variant="ghost" size="sm" asChild className="-ml-2 mb-4 text-muted-foreground">
         <Link to="/demo/agents/$agentId" params={{ agentId }}>
           <ArrowLeft />
-          Back to {agent.name}
+          {t("run.back", { name: agent.name })}
         </Link>
       </Button>
       <header className="mb-5 flex flex-col gap-4 border-b pb-5 xl:flex-row xl:items-center">
@@ -347,13 +355,13 @@ function RunViewer() {
         </div>
         <div className="flex flex-1 flex-wrap items-center gap-2 xl:justify-end">
           <RunBadge state={state} />
-          <span className="font-mono text-xs text-muted-foreground">{step.time} elapsed</span>
+          <span className="font-mono text-xs text-muted-foreground">{t("run.elapsed", { time: step.time })}</span>
           <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
           <Metric
-            label="Cost"
+            label={t("ag.cost")}
             value={`$${(run.cost * ((selected + 1) / steps.length)).toFixed(2)}`}
           />
-          <Metric label="Steps" value={`${selected + 1} / ${steps.length}`} />
+          <Metric label={t("ag.steps")} value={`${selected + 1} / ${steps.length}`} />
           <Button
             size="sm"
             variant="outline"
@@ -361,7 +369,7 @@ function RunViewer() {
             onClick={() => setState(state === "paused" ? "running" : "paused")}
           >
             {state === "paused" ? <Play /> : <Pause />}
-            {state === "paused" ? "Resume" : "Pause"}
+            {state === "paused" ? t("ag.resume") : t("ag.pause")}
           </Button>
           <Button
             size="sm"
@@ -369,11 +377,11 @@ function RunViewer() {
             disabled={state === "stopped" || state === "completed"}
             onClick={() => {
               setState("stopped");
-              toast.info("Run stopped");
+              toast.info(t("run.stopped"));
             }}
           >
             <Square />
-            Stop
+            {t("run.stop")}
           </Button>
         </div>
       </header>
@@ -382,7 +390,10 @@ function RunViewer() {
         <section
           className={`${mobilePanel === "screen" ? "block" : "hidden"} min-w-0 bg-card p-3 sm:p-4 xl:block`}
         >
-          <PanelTitle title="Screen View" meta={`Step ${step.id} of ${steps.length}`} />
+          <PanelTitle
+            title={t("run.screenView")}
+            meta={t("run.stepOf", { n: step.id, total: steps.length })}
+          />
           {DEMO_MODE ? <Screen step={step} /> : <LiveScreen step={step} runsetId={run.runsetId} />}
           <StepTimeline steps={steps} selected={index} onSelect={setSelected} compact />
         </section>
@@ -390,7 +401,7 @@ function RunViewer() {
           className={`${mobilePanel === "actions" ? "block" : "hidden"} min-w-0 bg-card xl:block`}
         >
           <div className="p-4 pb-2">
-            <PanelTitle title="Action Log" meta={`${steps.length} events`} />
+            <PanelTitle title={t("run.actionLog")} meta={t("run.events", { n: steps.length })} />
           </div>
           <div className="max-h-[560px] overflow-y-auto px-2 pb-3">
             {steps.map((item, index) => (
@@ -406,13 +417,13 @@ function RunViewer() {
         <section
           className={`${mobilePanel === "decisions" ? "block" : "hidden"} min-w-0 bg-card p-4 xl:block`}
         >
-          <PanelTitle title="Jev Decisions" meta={`Cycle ${step.id}`} />
+          <PanelTitle title={t("run.decisions")} meta={t("run.cycle", { n: step.id })} />
           <div className="mt-4 space-y-4">
-            <Decision label="Question" text={step.question} />
-            <Decision label="Response" text={step.answer} />
+            <Decision label={t("run.question")} text={step.question} />
+            <Decision label={t("run.response")} text={step.answer} />
             <div className="rounded-md border bg-muted/40 p-4">
               <div className="flex items-center justify-between gap-4">
-                <span className="font-mono text-xs text-muted-foreground">Select element</span>
+                <span className="font-mono text-xs text-muted-foreground">{t("run.selectElement")}</span>
                 <Badge variant="outline" className="font-mono">
                   {step.target}
                 </Badge>
@@ -426,7 +437,7 @@ function RunViewer() {
                 </div>
                 <span className="font-mono text-xs font-medium">{step.confidence.toFixed(2)}</span>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">Confidence</p>
+              <p className="mt-2 text-xs text-muted-foreground">{t("run.confidence")}</p>
             </div>
           </div>
         </section>
@@ -447,11 +458,11 @@ function RunViewer() {
               }}
             >
               <RotateCcw />
-              Replay
+              {t("run.replay")}
             </Button>
             <Button size="sm" variant="outline" onClick={exportLog}>
               <Download />
-              Export log
+              {t("run.export")}
             </Button>
           </div>
           <div className="min-w-0 flex-1 overflow-x-auto pb-1">
@@ -465,14 +476,14 @@ function RunViewer() {
         </div>
       </footer>
       <nav
-        aria-label="Run viewer panels"
+        aria-label={t("run.panels")}
         className="fixed inset-x-3 bottom-3 z-40 grid grid-cols-3 gap-1 rounded-md border bg-background/95 p-1 shadow-lg backdrop-blur xl:hidden"
       >
         {(
           [
-            { id: "screen", label: "Screen", icon: Monitor },
-            { id: "actions", label: "Actions", icon: ScrollText },
-            { id: "decisions", label: "Decisions", icon: BrainCircuit },
+            { id: "screen", label: "run.tab.screen", icon: Monitor },
+            { id: "actions", label: "run.tab.actions", icon: ScrollText },
+            { id: "decisions", label: "run.tab.decisions", icon: BrainCircuit },
           ] as const
         ).map(({ id, label, icon: Icon }) => (
           <Button
@@ -484,7 +495,7 @@ function RunViewer() {
             className="gap-1.5"
           >
             <Icon className="size-4" />
-            {label}
+            {t(label)}
           </Button>
         ))}
       </nav>
@@ -508,8 +519,15 @@ function Metric({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+const runStateKey: Record<"running" | "paused" | "stopped" | "completed", MessageKey> = {
+  running: "run.st.running",
+  paused: "run.st.paused",
+  stopped: "run.st.failed",
+  completed: "run.st.completed",
+};
 function RunBadge({ state }: { state: "running" | "paused" | "stopped" | "completed" }) {
-  const label = state === "stopped" ? "Failed" : state[0]?.toUpperCase() + state.slice(1);
+  const t = useT();
+  const label = t(runStateKey[state]);
   return (
     <Badge
       variant="outline"
@@ -548,6 +566,7 @@ function ActionRow({
   active: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   return (
     <Button
       variant="ghost"
@@ -563,7 +582,7 @@ function ActionRow({
       <span className="min-w-0 flex-1">
         <span className="flex items-center gap-2">
           <span className="font-mono text-xs text-muted-foreground">{step.time}</span>
-          <span className="text-xs uppercase text-muted-foreground">{step.type}</span>
+          <span className="text-xs uppercase text-muted-foreground">{t(stepTypeKey[step.type])}</span>
         </span>
         <span className="mt-1 block whitespace-normal text-xs leading-5">{step.description}</span>
       </span>
@@ -594,8 +613,9 @@ function StepTimeline({
   onSelect: (index: number) => void;
   compact?: boolean;
 }) {
+  const t = useT();
   return (
-    <nav aria-label="Run step timeline" className={compact ? "mt-4 overflow-x-auto pb-1" : ""}>
+    <nav aria-label={t("run.timeline")} className={compact ? "mt-4 overflow-x-auto pb-1" : ""}>
       <div className="relative flex min-w-[300px] items-center justify-between">
         <div className="absolute left-1 right-1 top-1/2 h-px bg-border" />
         <div
@@ -607,7 +627,7 @@ function StepTimeline({
             key={item.id}
             variant="ghost"
             size="icon"
-            aria-label={`View step ${item.id}`}
+            aria-label={t("run.viewStep", { n: item.id })}
             aria-current={index === selected ? "step" : undefined}
             onClick={() => onSelect(index)}
             className={`${compact ? "size-6" : "size-7"} relative rounded-full p-0`}
@@ -710,17 +730,18 @@ function Screen({ step }: { step: RunStep }) {
 }
 
 function LiveScreen({ step, runsetId }: { step: RunStep; runsetId?: string | undefined }) {
+  const t = useT();
   const shot = (step.artifacts ?? []).find((file) => /\.(png|jpe?g|webp)$/i.test(file));
   const src = shot && runsetId ? `/artifacts/runs/${runsetId}/${shot}` : null;
   if (!src)
     return (
       <div className="mt-4 flex min-h-[220px] items-center justify-center rounded-md border bg-surface p-6 text-center text-sm leading-6 text-muted-foreground">
-        No screenshot for this step — captures are written when the driver returns one.
+        {t("run.noShot")}
       </div>
     );
   return (
     <div className="mt-4 overflow-hidden rounded-md border bg-surface">
-      <img src={src} alt={`Screenshot for step ${step.id}`} className="w-full" />
+      <img src={src} alt={t("run.shotAlt", { n: step.id })} className="w-full" />
       <p className="border-t bg-card px-3 py-2 font-mono text-[10px] text-muted-foreground">
         {shot}
       </p>

@@ -1,16 +1,19 @@
 import { RefreshCw, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useT } from "@/lib/i18n";
 
 export function RefreshButton({
   onRefresh,
   refreshing,
-  label = "Refresh",
+  label: labelProp,
 }: {
   onRefresh: () => void;
   refreshing?: boolean;
   label?: string;
 }) {
+  const t = useT();
+  const label = labelProp ?? t("m.refresh");
   return (
     <Button
       variant="outline"
@@ -26,7 +29,7 @@ export function RefreshButton({
 }
 
 export function ErrorState({
-  message = "We couldn't reach the agent service.",
+  message: messageProp,
   detail,
   onRetry,
 }: {
@@ -34,6 +37,8 @@ export function ErrorState({
   detail?: string;
   onRetry: () => void;
 }) {
+  const t = useT();
+  const message = messageProp ?? t("ds.unreachable");
   return (
     <div className="mt-6 flex flex-col items-center gap-3 rounded-lg border border-dashed p-10 text-center">
       <span className="grid size-10 place-items-center rounded-full bg-destructive/12 text-destructive">
@@ -45,7 +50,7 @@ export function ErrorState({
       </div>
       <Button variant="outline" size="sm" onClick={onRetry}>
         <RefreshCw className="size-4" />
-        Retry
+        {t("ds.retry")}
       </Button>
     </div>
   );
@@ -86,10 +91,11 @@ export function RowSkeleton({ rows = 4 }: { rows?: number }) {
   );
 }
 
-export function OfflineNotice({ label = "Showing sample data — the agent service is offline." }) {
+export function OfflineNotice({ label }: { label?: string }) {
+  const t = useT();
   return (
     <p className="mt-4 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
-      {label}
+      {label ?? t("ds.offline")}
     </p>
   );
 }

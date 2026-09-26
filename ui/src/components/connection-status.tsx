@@ -1,16 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { API_URL } from "@/lib/api";
 import { healthQuery } from "@/lib/queries";
+import { useT } from "@/lib/i18n";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function ConnectionStatus() {
+  const t = useT();
   const { data, isPending, isError } = useQuery(healthQuery());
   const online = Boolean(data) && !isError;
   const label = isPending
-    ? "Checking API…"
+    ? t("conn.checkingApi")
     : online
-      ? "API connected"
-      : "API unreachable — showing sample data";
+      ? t("conn.connected")
+      : t("conn.unreachable");
 
   return (
     <TooltipProvider delayDuration={150}>
@@ -25,7 +27,7 @@ export function ConnectionStatus() {
               className={`size-2 rounded-full ${isPending ? "bg-muted-foreground" : online ? "bg-success" : "bg-destructive"}`}
             />
             <span className="hidden text-[11px] font-medium text-muted-foreground sm:inline">
-              {isPending ? "Checking" : online ? "Live" : "Offline"}
+              {isPending ? t("conn.checking") : online ? t("conn.live") : t("conn.offline")}
             </span>
           </span>
         </TooltipTrigger>
