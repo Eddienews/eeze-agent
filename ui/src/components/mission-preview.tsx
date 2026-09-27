@@ -188,8 +188,8 @@ export function MissionApprovalPreview({ missionId }: { missionId: string }) {
       <p className="flex items-center gap-1.5 text-sm font-medium">
         <ListChecks className="size-4" /> {t("r.willDo", { name: row.name })}
       </p>
-      <PlanSummary kind={row.kind} plan={row.plan ?? ""} />
-      {row.kind === "files" && <FilesPlanPreview plan={row.plan ?? ""} />}
+      <PlanSummary kind={row.kind} plan={row.run_plan ?? row.plan ?? ""} />
+      {row.kind === "files" && <FilesPlanPreview plan={row.run_plan ?? row.plan ?? ""} />}
       {(outputs.data?.sources.length ?? 0) > 0 && (
         <div>
           <p className="mb-1.5 text-xs text-muted-foreground">

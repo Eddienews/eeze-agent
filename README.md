@@ -24,7 +24,7 @@ your approval, and then does it in the background with the apps you already have
 | --- | --- |
 | Video | Trim, join, add titles/logo, vertical 9:16 cuts (ffmpeg) |
 | Photo | Crop, resize, square/vertical formats, simple edits (ffmpeg) |
-| Files | Rename in sequence, organize by date/type, find duplicates — preview + undo |
+| Files | Rename in sequence, organize by date/type, find duplicates — preview + undo; or watch a folder and propose the batch whenever new files arrive |
 | 3D | Simple Blender scenes and renders |
 | Invoices | Pull invoice data from PDFs into a table |
 | Routines | Any of the above on a schedule |
@@ -43,7 +43,8 @@ if it is missing, starts the background service, creates shortcuts and **opens E
 browser already signed in**. The first run takes a few minutes.
 
 **You need an AI provider** to turn your words into a plan: the setup page lets you paste a key
-for OpenRouter, OpenAI, Google, xAI or Groq, or point Eeze at a local [Ollama](https://ollama.com).
+for OpenRouter, OpenAI, Google, xAI or Groq, point Eeze at a local [Ollama](https://ollama.com),
+or route every call through [Sabi](#partner-sabi).
 Planning a mission costs cents; running files/video/photo missions uses no AI at all.
 Optional: [Blender](https://www.blender.org/) for 3D missions.
 
@@ -56,6 +57,18 @@ Optional: [Blender](https://www.blender.org/) for 3D missions.
 | Sign every browser out | `eeze unpair` (see below) |
 
 The service starts with Windows so scheduled routines run, and a watchdog restarts it if it stops.
+
+## Partner: Sabi
+
+Eeze works with **[Sabi](https://github.com/vizuh/sabi)** — adaptive inference scheduling for AI
+agents. Instead of one fixed model, Sabi decides the model, reasoning effort and provider for
+every call, so simple steps stay cheap and hard ones get a stronger model.
+
+1. Run Sabi on the same computer (Node 22.6+): `npm install`, then `npm start`. It listens on
+   `http://127.0.0.1:8787/v1`.
+2. In Eeze: **Settings → Providers & models → Sabi → Test connection → Use this one.**
+
+Eeze sends Sabi's routing alias `sabi-code`; keys for the models live in Sabi's own configuration.
 
 ## Signing in (pairing)
 

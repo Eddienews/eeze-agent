@@ -25,7 +25,7 @@ segundo plano, com os programas que você já tem.
 | --- | --- |
 | Vídeo | Cortar, juntar, títulos/logo, versões verticais 9:16 (ffmpeg) |
 | Foto | Recortar, redimensionar, quadrado/vertical, edições simples (ffmpeg) |
-| Arquivos | Renomear em sequência, organizar por data/tipo, achar duplicados — com prévia e desfazer |
+| Arquivos | Renomear em sequência, organizar por data/tipo, achar duplicados — com prévia e desfazer; ou monitorar uma pasta e propor o lote sempre que chegam arquivos novos |
 | 3D | Cenas e renders simples no Blender |
 | Notas fiscais | Extrair dados de PDFs para uma tabela |
 | Rotinas | Qualquer um dos itens acima, agendado |
@@ -44,8 +44,8 @@ faltar, liga o serviço em segundo plano, cria atalhos e **abre o Eeze no navega
 conectado**. A primeira vez leva alguns minutos.
 
 **Você precisa de um provedor de IA** para transformar suas palavras num plano: na
-configuração, cole uma chave da OpenRouter, OpenAI, Google, xAI ou Groq, ou aponte para um
-[Ollama](https://ollama.com) local. Planejar uma missão custa centavos; rodar missões de
+configuração, cole uma chave da OpenRouter, OpenAI, Google, xAI ou Groq, aponte para um
+[Ollama](https://ollama.com) local, ou passe todas as chamadas pelo [Sabi](#parceiro-sabi). Planejar uma missão custa centavos; rodar missões de
 arquivos/vídeo/foto não usa IA nenhuma. Opcional: [Blender](https://www.blender.org/) para 3D.
 
 ### Uso no dia a dia
@@ -57,6 +57,20 @@ arquivos/vídeo/foto não usa IA nenhuma. Opcional: [Blender](https://www.blende
 | Desconectar todos os navegadores | `eeze unpair` (veja abaixo) |
 
 O serviço inicia com o Windows para as rotinas rodarem, e um vigia o reinicia se ele parar.
+
+## Parceiro: Sabi
+
+O Eeze funciona com o **[Sabi](https://github.com/vizuh/sabi)** — agendamento adaptativo de
+inferência para agentes de IA. Em vez de um modelo fixo, o Sabi escolhe o modelo, o nível de
+raciocínio e o provedor a cada chamada: passos simples ficam baratos e os difíceis ganham um
+modelo mais forte.
+
+1. Rode o Sabi no mesmo computador (Node 22.6+): `npm install` e depois `npm start`. Ele fica
+   em `http://127.0.0.1:8787/v1`.
+2. No Eeze: **Configurações → Provedores e modelos → Sabi → Testar conexão → Usar este.**
+
+O Eeze envia o apelido de roteamento `sabi-code`; as chaves dos modelos ficam na configuração do
+próprio Sabi.
 
 ## Conectar o navegador (pareamento)
 

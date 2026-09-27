@@ -358,4 +358,24 @@ def run_routine(routine_id: str, *, repo_root: Path, home: Path, brain=None) -> 
     status = str(result.get("status") or "error")
     store.end_run(run_id, routine_id, status=status, detail=result, approval_id=result.get("approval_id"))
     log_line(log, f"run {run_id} end: {status}")
+    _record_on_mission(routine_id, result, home=home, repo_root=repo_root)
     return result
+
+
+def _record_on_mission(routine_id: str, result: dict, *, home: Path, repo_root: Path) -> None:
+    """A scheduled or folder-watch run of a mission shows on the mission's card too."""
+    if not routine_id.startswith("mission:") or not result.get("runset_id"):
+        return
+    from eeze_agent.core.missions import MissionError, MissionStore
+
+    status = str(result.get("status") or "error")
+    try:
+        MissionStore(home).record_run(
+            routine_id.split(":", 1)[1],
+            runset_id=str(result["runset_id"]),
+            status="done" if status == "ok" else status,
+            approval_id=result.get("approval_id"),
+            out_dir=str(Path(repo_root) / "artifacts" / "runs" / str(result["runset_id"])),
+        )
+    except (MissionError, OSError):
+        pass  # the mission was deleted meanwhile; the routine run is still recorded

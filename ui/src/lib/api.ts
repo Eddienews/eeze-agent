@@ -271,7 +271,7 @@ export interface ApiRoutineRun {
 export type MissionKind = "3d" | "video" | "photo" | "task" | "files";
 
 export interface ApiMissionSchedule {
-  type: "on_demand" | "daily" | "every";
+  type: "on_demand" | "daily" | "every" | "watch";
   at?: string | null;
   minutes?: number | null;
 }
@@ -295,6 +295,7 @@ export interface ApiMission {
   created_at?: string | null;
   updated_at?: string | null;
   last_run?: ApiMissionRun | null;
+  run_plan?: string | null;
   plan_meta: {
     model?: string;
     tokens?: number;

@@ -52,6 +52,7 @@ function scheduleLabel(routine: ApiRoutine, t: Translate) {
   const s = routine.schedule;
   if (s.type === "daily") return t("rt.dailyAt", { at: s.at ?? "08:00" });
   if (s.type === "every") return t("rt.everyMin", { n: s.minutes ?? "?" });
+  if (s.type === "watch") return t("m.sched.watch");
   return s.type;
 }
 

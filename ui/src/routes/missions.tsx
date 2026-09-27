@@ -119,9 +119,17 @@ function slugify(text: string): string {
   );
 }
 
+/** A watched Files rename keeps names already done (mirrors core/missions.effective_plan). */
+function watchedPlan(form: { kind: string; plan: string; schedule: ApiMissionSchedule }): string {
+  if (form.kind !== "files" || form.schedule.type !== "watch") return form.plan;
+  if (!/^op:\s*["']?rename["']?\s*$/m.test(form.plan) || /^keep_done:/m.test(form.plan)) return form.plan;
+  return `${form.plan.replace(/\s*$/, "")}\nkeep_done: true\n`;
+}
+
 function scheduleLabel(schedule: ApiMissionSchedule | undefined, t: Translate): string {
   if (!schedule || schedule.type === "on_demand") return t("m.sched.onDemand");
   if (schedule.type === "daily") return t("m.sched.daily", { at: schedule.at ?? "08:00" });
+  if (schedule.type === "watch") return t("m.sched.watch");
   return t("m.sched.every", { n: schedule.minutes ?? 0 });
 }
 
@@ -436,7 +444,16 @@ function MissionsPage() {
                               description: t("m.toast.kindClearedHint"),
                             });
                           }
-                          setForm((prev) => ({ ...prev, kind: kind.id, plan: "" }));
+                          setForm((prev) => ({
+                            ...prev,
+                            kind: kind.id,
+                            plan: "",
+                            // "when the folder changes" only exists for Files missions
+                            schedule:
+                              kind.id !== "files" && prev.schedule.type === "watch"
+                                ? { type: "on_demand" }
+                                : prev.schedule,
+                          }));
                         }}
                       >
                         {t(kind.label)}
@@ -445,7 +462,7 @@ function MissionsPage() {
                   </div>
                   <span className="text-[11px] text-muted-foreground">{kindBlurb}</span>
                 </div>
-                <div className="grid gap-1.5">
+                <div className="grid content-start gap-1.5">
                   <Label>{t("m.agent")}</Label>
                   <Select
                     value={form.agent_id}
@@ -466,7 +483,7 @@ function MissionsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-1.5">
+                <div className="grid content-start gap-1.5">
                   <Label>{t("m.schedule")}</Label>
                   <div className="flex items-center gap-1.5">
                     <Select
@@ -479,7 +496,9 @@ function MissionsPage() {
                               ? { type: "daily", at: prev.schedule.at ?? "08:00" }
                               : value === "every"
                                 ? { type: "every", minutes: prev.schedule.minutes ?? 60 }
-                                : { type: "on_demand" },
+                                : value === "watch"
+                                  ? { type: "watch" }
+                                  : { type: "on_demand" },
                         }))
                       }
                     >
@@ -490,6 +509,9 @@ function MissionsPage() {
                         <SelectItem value="on_demand">{t("m.onDemand")}</SelectItem>
                         <SelectItem value="daily">{t("m.daily")}</SelectItem>
                         <SelectItem value="every">{t("m.every")}</SelectItem>
+                        {form.kind === "files" && (
+                          <SelectItem value="watch">{t("m.watch")}</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     {form.schedule.type === "daily" && (
@@ -523,6 +545,9 @@ function MissionsPage() {
                       </>
                     )}
                   </div>
+                  {form.schedule.type === "watch" && (
+                    <p className="text-xs text-muted-foreground">{t("m.watchHint")}</p>
+                  )}
                 </div>
                 {(form.kind === "video" || form.kind === "photo" || form.kind === "files") && (
                   <div className="grid gap-1.5 sm:col-span-2">
@@ -694,10 +719,10 @@ function MissionsPage() {
                 </p>
                 {planReady && (
                   <div className="mt-2 rounded-md border border-border bg-muted/30 p-3">
-                    <PlanSummary kind={form.kind} plan={form.plan} />
+                    <PlanSummary kind={form.kind} plan={watchedPlan(form)} />
                     {form.kind === "files" && (
                       <div className="mt-3">
-                        <FilesPlanPreview plan={form.plan} />
+                        <FilesPlanPreview plan={watchedPlan(form)} />
                       </div>
                     )}
                     <button

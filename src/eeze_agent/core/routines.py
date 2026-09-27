@@ -11,6 +11,8 @@ The scheduler lives in the API daemon: every tick it spawns due routines as deta
 
 Schedules are deliberately simple: ``{"type": "daily", "at": "08:00"}`` or
 ``{"type": "every", "minutes": N}``. Local wall-clock time, like the invoices vertical.
+``{"type": "watch"}`` (Files missions only) has no clock: the scheduler starts it when the
+mission's folder changes and the plan would change something (see ``core/watch.py``).
 """
 
 from __future__ import annotations
@@ -84,10 +86,12 @@ def _iso(dt: datetime) -> str:
     return dt.replace(microsecond=0).isoformat()
 
 
-def compute_next_run(schedule: dict, base: datetime | None = None) -> str:
-    """Next due timestamp (local, ISO) for the simple schedule shapes."""
+def compute_next_run(schedule: dict, base: datetime | None = None) -> str | None:
+    """Next due timestamp (local, ISO) for the simple schedule shapes (None: folder watch)."""
     base = base or _now_local()
     kind = str(schedule.get("type") or "").lower()
+    if kind == "watch":
+        return None
     if kind == "every":
         minutes = max(1, int(schedule.get("minutes") or 60))
         return _iso(base + timedelta(minutes=minutes))
@@ -101,7 +105,7 @@ def compute_next_run(schedule: dict, base: datetime | None = None) -> str:
         if candidate <= base:
             candidate += timedelta(days=1)
         return _iso(candidate)
-    raise ValueError(f"unknown schedule type: {kind!r} (daily|every)")
+    raise ValueError(f"unknown schedule type: {kind!r} (daily|every|watch)")
 
 
 def task_routine_status(summary: dict) -> str:
@@ -454,6 +458,36 @@ class Scheduler:
                 continue
             self.store.mark_spawned(routine["id"], now=now)
             spawned.append(routine["id"])
+        spawned += self.watch_tick(now)
+        return spawned
+
+    def watch_tick(self, now: datetime | None = None) -> list[str]:
+        """Folder-watch missions: start one when its folder changed and the plan has work."""
+        from eeze_agent.core import watch
+
+        spawned: list[str] = []
+        clock = now.timestamp() if now is not None else None
+        for routine in self.store.list():
+            if not routine["enabled"] or (routine.get("schedule") or {}).get("type") != "watch":
+                continue
+            rid = routine["id"]
+            result = watch.evaluate(self.home, rid, busy=self.store.has_open_run(rid), now=clock)
+            if result["action"] != "run":
+                continue
+            log = routine_log_path(self.home, rid)
+            try:
+                self.spawn(["routines", "run", rid], cwd=self.repo_root, log_path=log)
+            except OSError as exc:
+                self.store.record_spawn_failure(
+                    rid, now=now, log_path=str(log),
+                    error_type=type(exc).__name__, errno=exc.errno,
+                )
+                log_line(log, f"watch: spawn failed: {type(exc).__name__} (errno={exc.errno})")
+                continue
+            watch.mark_triggered(self.home, rid, now=clock)
+            self.store.mark_spawned(rid, now=now)
+            log_line(log, f"watch: the folder changed — {result['detail']}; waiting for your approval")
+            spawned.append(rid)
         return spawned
 
     def start(self) -> None:

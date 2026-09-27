@@ -325,12 +325,16 @@ def _files_lines(data: dict, pt: bool = False) -> list[str]:
             return [f"Renomear as {what} em {folder}",
                     f"Novos nomes: {data.get('pattern')} (contador começa em {data.get('start', 1)}), "
                     f"ordenados {order}; extensões mantidas",
+                    *(["Arquivos que já seguem o padrão ficam como estão; os novos continuam a contagem"]
+                      if data.get("keep_done") else []),
                     "Você vê cada nome antigo → novo antes de qualquer mudança, e pode desfazer"]
         order = {"taken": "the date each photo was taken", "modified": "file date"}.get(
             str(data.get("order")), "name (natural order)")
         return [f"Rename the {what} in {folder}",
                 f"New names: {data.get('pattern')} (counter starts at {data.get('start', 1)}), "
                 f"sorted by {order}; extensions kept",
+                *(["Files already named this way stay as they are; new ones continue the count"]
+                  if data.get("keep_done") else []),
                 "You see every old → new name before anything changes, and can undo"]
     if op == "organize":
         by = str(data.get("by", "month"))

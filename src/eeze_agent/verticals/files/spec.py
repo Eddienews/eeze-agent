@@ -26,6 +26,9 @@ class FilesSpec(BaseModel):
     pattern: str | None = None  # e.g. "park{n:03}" -> park001.jpg ; tokens: {n} {n:03} {date} {time} {name} {ext}
     start: int = Field(default=1, ge=0, le=1_000_000)
     order: Literal["name", "taken", "modified"] = "name"
+    # Leave files already named by the pattern alone; new ones continue the count
+    # (watched folders turn this on, so a new photo never renumbers the old ones).
+    keep_done: bool = False
     # organize
     by: Literal["month", "day", "year", "type"] = "month"
 
@@ -59,6 +62,27 @@ class FilesSpec(BaseModel):
         if self.include == "all":
             return None
         return {e.lower() for e in self.include}
+
+    def done_regex(self) -> re.Pattern | None:
+        """Stems that already follow the pattern (group ``n`` = their counter)."""
+        if self.op != "rename" or not self.pattern:
+            return None
+        parts, pos, seen_n = [], 0, False
+        for match in _TOKEN.finditer(self.pattern):
+            parts.append(re.escape(self.pattern[pos:match.start()]))
+            token = match.group(1)
+            if token.startswith("n"):
+                parts.append(r"\d+" if seen_n else r"(?P<n>\d+)")
+                seen_n = True
+            elif token == "date":
+                parts.append(r"\d{4}-\d{2}-\d{2}")
+            elif token == "time":
+                parts.append(r"\d{6}")
+            elif token == "name":
+                parts.append(r".+")
+            pos = match.end()
+        parts.append(re.escape(self.pattern[pos:]))
+        return re.compile("".join(parts), re.IGNORECASE)
 
     def folder_path(self) -> Path:
         return Path(str(self.folder).strip().strip('"').strip("'"))

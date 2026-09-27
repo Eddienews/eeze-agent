@@ -73,6 +73,7 @@ AUTH = {"X-EEZE-Token": "test-token-123"}
 def test_catalog_is_honest_about_models():
     assert provider_ids() == [
         "openrouter",
+        "sabi",
         "openai",
         "google",
         "xai",
@@ -85,6 +86,10 @@ def test_catalog_is_honest_about_models():
     assert get_provider("openrouter").default_models["routine"] == "openai/gpt-6-luna"
     assert get_provider("codex").default_models["hard"] == "gpt-6-sol"
     assert get_provider("openai").default_models == {}
+    # Sabi ships its documented routing alias, not a model id; it runs locally, no key.
+    assert get_provider("sabi").default_models == {"routine": "sabi-code", "hard": "sabi-code"}
+    assert get_provider("sabi").kind == "local"
+    assert get_provider("sabi").base_url == "http://127.0.0.1:8787/v1"
     assert get_provider("anthropic").compatible is False
     assert get_provider("codex").local_only is True
 
@@ -656,3 +661,23 @@ def test_model_ids_are_plain_tokens():
         build_argv("codex", "gpt&calc.exe", tmp_path_placeholder := "C:/s", platform="nt")  # noqa: F841
     with _pytest.raises(ValueError):
         build_argv("C:/evil&calc.exe", "gpt-6-sol", "C:/s", platform="nt")
+
+
+def test_sabi_is_reached_locally_with_its_routing_alias_and_no_key(tmp_path, monkeypatch):
+    _clean(monkeypatch)
+    cfg = resolve_provider("brain", provider_id="sabi", home=tmp_path)
+    assert cfg.base_url == "http://127.0.0.1:8787/v1" and cfg.api_key == ""
+    assert cfg.model == "sabi-code" and cfg.brain == "llm"
+    calls = []
+
+    def fake_sabi(url, json=None, headers=None, timeout=None):
+        calls.append({"url": url, "json": json, "headers": headers})
+        return _FakeResponse(200, body={"model": "openai/gpt-6-luna",
+                                        "choices": [{"message": {"content": "OK"}}],
+                                        "usage": {"prompt_tokens": 9, "completion_tokens": 1}})
+
+    result = probe_provider("sabi", cfg, http_post=fake_sabi)
+    assert result["ok"] is True
+    assert calls[0]["url"] == "http://127.0.0.1:8787/v1/chat/completions"
+    assert calls[0]["json"]["model"] == "sabi-code" and "Authorization" not in calls[0]["headers"]
+    assert result["model_echo"] == "openai/gpt-6-luna"  # Sabi reports the model it routed to

@@ -51,6 +51,12 @@ const SERVER_TEXT: Record<string, MessageKey> = {
   "no key yet — add one to use this provider": "prov.srv.noKey",
   "cli missing or no login — run `codex login`": "prov.srv.cliMissing",
   "no key needed — run Test connection": "prov.srv.noKeyTest",
+  "Sabi (adaptive routing, local proxy)": "prov.lbl.sabi",
+  "Ollama (local server)": "prov.lbl.ollama",
+  "Google Gemini (OpenAI-compatible endpoint)": "prov.lbl.google",
+  "Codex subscription (local CLI)": "prov.lbl.codex",
+  "partner · picks model, effort and provider for every call — start Sabi (npm start), then Test connection":
+    "prov.srv.sabi",
 };
 
 function serverText(text: string, t: Translate): string {
@@ -208,7 +214,7 @@ export function ProvidersCard() {
               <div className="flex flex-wrap items-start justify-between gap-3 p-4">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{provider.label}</span>
+                    <span className="font-medium">{serverText(provider.label, t)}</span>
                     <Badge variant="outline" className="font-normal text-muted-foreground">
                       {t(KIND_LABEL[provider.kind])}
                     </Badge>
@@ -297,7 +303,7 @@ export function ProvidersCard() {
                     htmlFor={`key-${provider.id}`}
                     className="text-xs uppercase text-muted-foreground"
                   >
-                    {t("prov.keyLabel", { provider: provider.label })}
+                    {t("prov.keyLabel", { provider: serverText(provider.label, t) })}
                   </Label>
                   <div className="mt-1.5 flex gap-2">
                     <Input

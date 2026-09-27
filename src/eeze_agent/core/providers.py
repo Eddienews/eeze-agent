@@ -7,7 +7,8 @@ Eeze keeps it on this machine (``core/secrets_local.py``). This module owns the 
 * the **catalog** of providers Eeze knows how to talk to, with the honesty rules the rest of the
   project follows — ``default_models`` is filled ONLY where a model was measured live on this
   machine (OpenRouter: ``openai/gpt-6-luna|sol``; Codex subscription: ``gpt-6-luna|sol``); every
-  other provider ships with NO invented model id and the API must ask for one;
+  other provider ships with NO invented model id and the API must ask for one. Sabi is the one
+  routing layer: ``sabi-code`` is its documented alias, and Sabi picks the real model per round;
 * ``compatible=False`` marks a documented provider that does NOT speak the OpenAI
   chat-completions the ``llm`` brain uses (Anthropic's Messages API) — selecting it is refused
   with a reason, never a fake success;
@@ -84,6 +85,16 @@ CATALOG: tuple[Provider, ...] = (
         docs_url="https://openrouter.ai/docs",
         default_models={"routine": "openai/gpt-6-luna", "hard": "openai/gpt-6-sol"},
         note="measured here 2026-09-23 (Luna routine / Sol hard)",
+    ),
+    Provider(
+        id="sabi",
+        label="Sabi (adaptive routing, local proxy)",
+        kind="local",
+        base_url="http://127.0.0.1:8787/v1",
+        docs_url="https://github.com/vizuh/sabi",
+        # Not a model: Sabi's routing alias. Sabi decides model, effort and provider per round.
+        default_models={"routine": "sabi-code", "hard": "sabi-code"},
+        note="partner · picks model, effort and provider for every call — start Sabi (npm start), then Test connection",
     ),
     Provider(
         id="openai",

@@ -95,7 +95,9 @@ def _norm_schedule(value: Any) -> dict:
         if minutes < 1:
             raise MissionError("'every' needs minutes >= 1")
         return {"type": "every", "minutes": minutes}
-    raise MissionError(f"unknown schedule type {kind!r} — on_demand | daily | every")
+    if kind == "watch":
+        return {"type": "watch"}
+    raise MissionError(f"unknown schedule type {kind!r} — on_demand | daily | every | watch")
 
 
 def effective_last_run(last: dict | None, *, approval_status=None, now: datetime | None = None) -> dict | None:
@@ -136,6 +138,9 @@ def to_public(row: dict, *, plan: bool, approval_status=None) -> dict:
     out["plan_chars"] = len(str(row.get("plan") or ""))
     if plan:
         out["plan"] = str(row.get("plan") or "")
+        run_plan = effective_plan(row)
+        if run_plan != out["plan"]:
+            out["run_plan"] = run_plan  # what actually runs (e.g. a watched rename keeps done names)
     return out
 
 
@@ -197,6 +202,9 @@ class MissionStore:
         else:
             meta.pop("edited", None)
 
+        schedule = _norm_schedule(data.get("schedule") or previous.get("schedule"))
+        if schedule["type"] == "watch" and kind != "files":
+            raise MissionError("'when the folder changes' is only for Files missions")
         row = {
             "id": mid,
             "name": str(data.get("name") or previous.get("name") or mid).strip()[:80],
@@ -205,7 +213,7 @@ class MissionStore:
             "goal": str(pick("goal", "") or ""),
             "plan": plan,
             "plan_meta": meta,
-            "schedule": _norm_schedule(data.get("schedule") or previous.get("schedule")),
+            "schedule": schedule,
             "sources": str(pick("sources", "") or ""),
             "created_at": previous.get("created_at") or _now(),
             "updated_at": _now(),
@@ -473,10 +481,25 @@ def _eeze_exe() -> str:
     return str(candidate if candidate.exists() else "eeze")
 
 
+def effective_plan(mission: dict) -> str:
+    """The plan as it runs: a watched Files rename keeps names already done (``keep_done``)."""
+    plan_text = str(mission.get("plan") or "")
+    if str(mission.get("kind")) != "files" or (mission.get("schedule") or {}).get("type") != "watch":
+        return plan_text
+    try:
+        data = yaml.safe_load(plan_text)
+    except yaml.YAMLError:
+        return plan_text
+    if not isinstance(data, dict) or data.get("op") != "rename" or "keep_done" in data:
+        return plan_text
+    data["keep_done"] = True
+    return yaml.safe_dump(data, sort_keys=False, allow_unicode=True)
+
+
 def materialize(mission: dict, *, home: Path | str | None = None) -> Path:
     """Write the mission's plan where the runner reads it; return the TASK path to execute."""
     kind = str(mission.get("kind") or "task")
-    plan_text = str(mission.get("plan") or "")
+    plan_text = effective_plan(mission)
     if not plan_text.strip():
         raise MissionError("mission has no plan yet — generate a draft and save it first")
     store = MissionStore(home)
@@ -560,6 +583,10 @@ def sync_schedule(mission: dict, *, home: Path | str | None = None) -> dict:
     if schedule.get("type") == "on_demand":
         return {"removed": bool(store.remove(routine_id))}
     task_path = materialize(mission, home=home)
+    if schedule.get("type") == "watch":
+        from eeze_agent.core.watch import forget
+
+        forget(Path(home) if home is not None else Path.home() / ".eeze", routine_id)
     store.add(
         routine_id,
         name=f"Mission · {mission.get('name') or mission['id']}",

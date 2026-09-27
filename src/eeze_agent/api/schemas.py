@@ -362,9 +362,9 @@ class ProbeResult(BaseModel):
 
 
 class MissionSchedule(BaseModel):
-    """Mirrors the routines UI: on demand, daily at HH:MM, or every N minutes."""
+    """On demand, daily at HH:MM, every N minutes, or (Files missions) when the folder changes."""
 
-    type: Literal["on_demand", "daily", "every"] = "on_demand"
+    type: Literal["on_demand", "daily", "every", "watch"] = "on_demand"
     at: str | None = None
     minutes: int | None = None
 
@@ -384,6 +384,7 @@ class Mission(BaseModel):
     has_plan: bool = False
     plan_chars: int = 0
     plan: str | None = None
+    run_plan: str | None = None
     note: str = ""  # what happened to the schedule on the last save (honest, never silent)
 
 

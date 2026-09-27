@@ -858,6 +858,14 @@ const en = {
   "ag.allApps": "All applications",
   "ag.allTools": "All tools",
   "ag.foreground": "Foreground control",
+  "m.watch": "When the folder changes",
+  "m.sched.watch": "when the folder changes",
+  "m.watchHint": "Eeze looks at the folder every 30 s. When new files arrive and stop changing, it prepares the batch and waits for your approval — only when there is something to do. Leave the daemon running (it starts with Windows).",
+  "prov.srv.sabi": "partner · picks model, effort and provider for every call — start Sabi (npm start), then Test connection",
+  "prov.lbl.sabi": "Sabi (adaptive routing, local proxy)",
+  "prov.lbl.ollama": "Ollama (local server)",
+  "prov.lbl.google": "Google Gemini (OpenAI-compatible endpoint)",
+  "prov.lbl.codex": "Codex subscription (local CLI)",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1702,6 +1710,14 @@ const pt: Partial<Record<MessageKey, string>> = {
   "ag.allApps": "Todos os aplicativos",
   "ag.allTools": "Todas as ferramentas",
   "ag.foreground": "Controle em primeiro plano",
+  "m.watch": "Quando a pasta mudar",
+  "m.sched.watch": "quando a pasta mudar",
+  "m.watchHint": "O Eeze olha a pasta a cada 30 s. Quando chegam arquivos novos e eles param de mudar, ele prepara o lote e espera a sua aprovação — só quando há algo a fazer. Deixe o serviço rodando (ele inicia com o Windows).",
+  "prov.srv.sabi": "parceiro · escolhe modelo, esforço e provedor a cada chamada — ligue o Sabi (npm start) e clique em Testar conexão",
+  "prov.lbl.sabi": "Sabi (roteamento adaptativo, proxy local)",
+  "prov.lbl.ollama": "Ollama (servidor local)",
+  "prov.lbl.google": "Google Gemini (endpoint compatível com OpenAI)",
+  "prov.lbl.codex": "Assinatura Codex (CLI local)",
 };
 
 const DICTS: Record<Lang, Partial<Record<MessageKey, string>>> = { en, pt };

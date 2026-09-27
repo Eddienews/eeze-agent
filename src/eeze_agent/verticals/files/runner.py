@@ -138,12 +138,22 @@ def plan_changes(spec: FilesSpec) -> dict:
             out["duplicates"] += [sorted(names) for names in by_hash.values() if len(names) > 1]
         return out
 
+    first = spec.start
+    done_rx = spec.done_regex() if spec.keep_done else None
+    if done_rx is not None:
+        done = [p for p in files if done_rx.fullmatch(p.stem)]
+        counters = [int(m.group("n")) for p in done
+                    if (m := done_rx.fullmatch(p.stem)) and "n" in m.groupdict() and m.group("n")]
+        if counters:
+            first = max(max(counters) + 1, spec.start)
+        out["kept"] = len(done)
+        files = [p for p in files if p not in done]
     sources = {p.name.lower() for p in files}
     existing = {p.name.lower() for p in folder.iterdir()}
     targets: dict[str, str] = {}
     for index, path in enumerate(files):
         if spec.op == "rename":
-            stem = _format(spec.pattern or "", n=spec.start + index,
+            stem = _format(spec.pattern or "", n=first + index,
                            when=_when(path, spec.order == "taken"), stem=path.stem)
             new = f"{stem}{path.suffix}"
         else:  # organize
