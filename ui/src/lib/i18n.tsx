@@ -844,6 +844,20 @@ const en = {
   "wiz.tpl.scribeRole": "Documents & Forms",
   "wiz.updated": "{name} updated.",
   "wiz.userFileNote": "Saved to your user file (~/.eeze/agents.yaml).",
+  "prov.srv.measured": "measured here 2026-09-23 (Luna routine / Sol hard)",
+  "prov.srv.noModel": "no model default shipped — set a model before probing",
+  "prov.srv.startServer": "no key needed — start the server and run Test connection",
+  "prov.srv.native": "native Messages API — the llm brain speaks chat-completions; not wired yet",
+  "prov.srv.codexSession": "the local Codex CLI session (~/.codex/auth.json); no API key; local-only",
+  "prov.srv.keyStored": "key stored locally",
+  "prov.srv.keyEnv": "key from the environment (.env)",
+  "prov.srv.noKey": "no key yet — add one to use this provider",
+  "prov.srv.cliMissing": "cli missing or no login — run `codex login`",
+  "prov.srv.noKeyTest": "no key needed — run Test connection",
+  "prov.srv.cliFound": "cli found · session present ({home})",
+  "ag.allApps": "All applications",
+  "ag.allTools": "All tools",
+  "ag.foreground": "Foreground control",
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -1674,6 +1688,20 @@ const pt: Partial<Record<MessageKey, string>> = {
   "wiz.tpl.scribeRole": "Documentos e Formulários",
   "wiz.updated": "{name} atualizado.",
   "wiz.userFileNote": "Salvo no seu arquivo de usuário (~/.eeze/agents.yaml).",
+  "prov.srv.measured": "medido aqui em 2026-09-23 (Luna rotina / Sol difícil)",
+  "prov.srv.noModel": "sem modelo padrão — escolha um modelo antes de testar",
+  "prov.srv.startServer": "não precisa de chave — ligue o servidor e clique em Testar conexão",
+  "prov.srv.native": "API Messages nativa — o cérebro llm usa chat-completions; ainda não conectado",
+  "prov.srv.codexSession": "a sessão local do Codex CLI (~/.codex/auth.json); sem chave de API; só neste computador",
+  "prov.srv.keyStored": "chave guardada neste computador",
+  "prov.srv.keyEnv": "chave vinda do ambiente (.env)",
+  "prov.srv.noKey": "ainda sem chave — adicione uma para usar este provedor",
+  "prov.srv.cliMissing": "CLI ausente ou sem login — rode `codex login`",
+  "prov.srv.noKeyTest": "não precisa de chave — clique em Testar conexão",
+  "prov.srv.cliFound": "CLI encontrado · sessão presente ({home})",
+  "ag.allApps": "Todos os aplicativos",
+  "ag.allTools": "Todas as ferramentas",
+  "ag.foreground": "Controle em primeiro plano",
 };
 
 const DICTS: Record<Lang, Partial<Record<MessageKey, string>>> = { en, pt };

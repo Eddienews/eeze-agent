@@ -39,9 +39,32 @@ function statusOf(
   return { text: t("prov.notSet"), variant: "outline" };
 }
 
+/** Notes/details come from the local service in English; show the known ones translated. */
+const SERVER_TEXT: Record<string, MessageKey> = {
+  "measured here 2026-09-23 (Luna routine / Sol hard)": "prov.srv.measured",
+  "no model default shipped — set a model before probing": "prov.srv.noModel",
+  "no key needed — start the server and run Test connection": "prov.srv.startServer",
+  "native Messages API — the llm brain speaks chat-completions; not wired yet": "prov.srv.native",
+  "the local Codex CLI session (~/.codex/auth.json); no API key; local-only": "prov.srv.codexSession",
+  "key stored locally": "prov.srv.keyStored",
+  "key from the environment (.env)": "prov.srv.keyEnv",
+  "no key yet — add one to use this provider": "prov.srv.noKey",
+  "cli missing or no login — run `codex login`": "prov.srv.cliMissing",
+  "no key needed — run Test connection": "prov.srv.noKeyTest",
+};
+
+function serverText(text: string, t: Translate): string {
+  const key = SERVER_TEXT[text];
+  if (key) return t(key);
+  const found = /^cli found · session present \((.*)\)$/.exec(text);
+  return found ? t("prov.srv.cliFound", { home: found[1] ?? "" }) : text;
+}
+
 function whereFrom(provider: ApiProvider, t: Translate): string {
   if (provider.kind === "oauth_external")
-    return provider.configured_detail || t("prov.localSession");
+    return provider.configured_detail
+      ? serverText(provider.configured_detail, t)
+      : t("prov.localSession");
   if (provider.key_source === "store")
     return `${t("prov.stored")}${provider.key_last4 ? ` ···${provider.key_last4}` : ""}`;
   if (provider.key_source === "env") return t("prov.fromEnv");
@@ -208,7 +231,9 @@ export function ProvidersCard() {
                     {models ? ` — ${models}` : ""}
                   </p>
                   {provider.note && (
-                    <p className="mt-1 text-xs text-muted-foreground">{provider.note}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {serverText(provider.note, t)}
+                    </p>
                   )}
                 </div>
 

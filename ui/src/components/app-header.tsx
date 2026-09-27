@@ -71,7 +71,7 @@ export function AppHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       {!DEMO_MODE && <UpdateBanner />}
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-4 px-6">
-        <Link to="/demo" className="flex items-center gap-2" aria-label={t("hdr.home")}>
+        <Link to="/demo" className="flex shrink-0 items-center gap-2" aria-label={t("hdr.home")}>
           <span className="grid size-6 shrink-0 place-items-center rounded-md bg-[#f4f1ea]">
             <img
               src="/eeze-mark.png"
@@ -82,7 +82,7 @@ export function AppHeader() {
               className="h-5 w-5"
             />
           </span>
-          <span className="text-sm font-semibold tracking-tight">Eeze Agents</span>
+          <span className="whitespace-nowrap text-sm font-semibold tracking-tight">Eeze Agents</span>
         </Link>
 
         <nav aria-label={t("hdr.mainNav")} className="ml-2 hidden items-center gap-1 sm:flex">
@@ -91,7 +91,7 @@ export function AppHeader() {
               key={item.to}
               to={item.to}
               activeOptions={{ exact: item.to === "/demo" }}
-              className="rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[status=active]:bg-accent data-[status=active]:text-foreground"
+              className="inline-flex items-center whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground data-[status=active]:bg-accent data-[status=active]:text-foreground"
             >
               {t(item.label)}
               {item.to.endsWith("approvals") && pendingCount > 0 && (
@@ -105,7 +105,7 @@ export function AppHeader() {
 
         <div className="ml-auto flex items-center gap-1.5">
           {needsSetup && (
-            <Button variant="outline" size="sm" asChild className="gap-1.5">
+            <Button variant="outline" size="sm" asChild className="gap-1.5 whitespace-nowrap">
               <Link to="/setup" title={t("hdr.finishSetup")}>
                 <Rocket className="size-3.5" />
                 {t("header.setup")}
@@ -115,7 +115,7 @@ export function AppHeader() {
           {!DEMO_MODE && spend && (
             <span
               title={`${t("header.spendTitle")}\n${spendTitle}`}
-              className={`hidden items-center gap-1 rounded-full border px-2.5 py-1 font-mono text-xs lg:inline-flex ${
+              className={`hidden items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-1 font-mono text-xs lg:inline-flex ${
                 overCap
                   ? "border-destructive/40 bg-destructive/10 text-destructive"
                   : nearCap
@@ -130,7 +130,7 @@ export function AppHeader() {
           {DEMO_MODE ? (
             <span
               title={t("hdr.demoTitle")}
-              className="mr-1 inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
+              className="mr-1 inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border bg-muted px-2.5 py-1 text-xs text-muted-foreground"
             >
               <span className="size-1.5 rounded-full bg-muted-foreground/50" />
               {t("hdr.demoBadge")}
@@ -142,7 +142,7 @@ export function AppHeader() {
             variant="outline"
             size="sm"
             onClick={() => setCommandOpen(true)}
-            className="hidden gap-2 text-muted-foreground md:flex"
+            className="hidden gap-2 whitespace-nowrap text-muted-foreground lg:flex"
           >
             <Search className="size-3.5" />
             <span>{t("header.command")}</span>

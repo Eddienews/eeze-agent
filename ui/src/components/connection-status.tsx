@@ -21,7 +21,7 @@ export function ConnectionStatus() {
           <span
             role="status"
             aria-label={`${label} (${API_URL})`}
-            className="flex items-center gap-1.5 rounded-full border border-border px-2 py-1"
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border px-2 py-1"
           >
             <span
               className={`size-2 rounded-full ${isPending ? "bg-muted-foreground" : online ? "bg-success" : "bg-destructive"}`}

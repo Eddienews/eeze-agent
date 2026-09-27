@@ -47,7 +47,7 @@ import { agentQuery, routinesQuery, runsQuery } from "@/lib/queries";
 import { DEMO_MODE } from "@/lib/api";
 import { CreateAgentWizard } from "@/components/create-agent-wizard";
 import { getAgent } from "@/lib/mock-data";
-import { useT, type MessageKey } from "@/lib/i18n";
+import { useT, type MessageKey, type Translate } from "@/lib/i18n";
 
 const tabKey: Record<string, MessageKey> = {
   overview: "ag.tab.overview",
@@ -56,6 +56,16 @@ const tabKey: Record<string, MessageKey> = {
   history: "ag.tab.history",
   settings: "ag.tab.settings",
 };
+
+/** Labels built in lib/api.ts (outside React) in English; translate the known ones here. */
+function permissionLabel(id: string, label: string, t: Translate): string {
+  if (id === "apps" && label === "All applications") return t("ag.allApps");
+  if (id === "allow_foreground") return t("ag.foreground");
+  const risk = `risk.${id}`;
+  if (["read", "write_local", "external_send", "install_exec", "destructive", "system"].includes(id))
+    return t(risk as MessageKey);
+  return label;
+}
 
 export const Route = createFileRoute("/demo/agents/$agentId")({
   loader: ({ params }) => {
@@ -319,7 +329,7 @@ function AgentDetail() {
                     ) : (
                       <ShieldCheck className="size-4 text-primary" />
                     )}
-                    <span>{permission.label}</span>
+                    <span>{permissionLabel(permission.id, permission.label, t)}</span>
                   </Label>
                 ))}
               </CardContent>
@@ -331,7 +341,7 @@ function AgentDetail() {
               <CardContent className="flex flex-wrap gap-2">
                 {agent.tools.map((tool) => (
                   <Badge key={tool} variant="secondary" className="font-normal">
-                    {tool}
+                    {tool === "All tools" ? t("ag.allTools") : tool}
                   </Badge>
                 ))}
               </CardContent>
